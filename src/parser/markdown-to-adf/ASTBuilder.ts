@@ -469,9 +469,8 @@ export class ASTBuilder {
 
   private convertText(token: Token): ADFNode {
     // Check if this token has metadata with marks (from span-style comments)
-    // The metadata might be stored in token.metadata or if this came from mdast, check for common sources
-    if (token.metadata?.adfMetadata && Array.isArray(token.metadata.adfMetadata)) {
-      const metadata = token.metadata.adfMetadata[0];
+    if (token.metadata?.marks && Array.isArray(token.metadata.marks)) {
+      const metadata = token.metadata;
       if (metadata && metadata.marks && Array.isArray(metadata.marks)) {
         // Create text node with the marks from metadata
         return {
@@ -1295,7 +1294,6 @@ export class ASTBuilder {
         return null;
       case 'text':
         // Check if this text node has metadata with marks (from span-style comments)
-        console.log('DEBUG: Processing text node:', JSON.stringify(node, null, 2));
         if (node.data?.adfMetadata && Array.isArray(node.data.adfMetadata)) {
           console.log('DEBUG: Found adfMetadata:', JSON.stringify(node.data.adfMetadata, null, 2));
           const metadata = node.data.adfMetadata[0];

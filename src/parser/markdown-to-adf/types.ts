@@ -13,6 +13,7 @@ export interface ADFMetadata {
   nodeType: string;
   attrs?: Record<string, any>;
   markType?: string;
+  marks?: any[]; // Array of marks for text formatting
 }
 
 export interface Token {
