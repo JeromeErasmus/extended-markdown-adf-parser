@@ -368,6 +368,7 @@ export class MarkdownToAdfEngine {
   private postProcessAdfFenceBlocks(tree: Root): Root {
     const adfBlockTypes = new Set(['panel', 'expand', 'nestedExpand', 'mediaSingle', 'mediaGroup']);
     
+    
     const processedTree = JSON.parse(JSON.stringify(tree)); // Deep clone
     
     // Multi-pass processing: keep processing until no more ADF fence blocks are found
@@ -382,6 +383,7 @@ export class MarkdownToAdfEngine {
       const processNode = (node: any): void => {
         // Handle direct code blocks with ADF languages at any nesting level
         if (node.type === 'code' && node.lang && adfBlockTypes.has(node.lang)) {
+          
           // Convert code block to adfFence node
           const attributes = this.parseAdfLanguageString(node.lang, node.meta || '');
           
@@ -390,13 +392,19 @@ export class MarkdownToAdfEngine {
           node.attributes = attributes;
           
           // Parse the code content as markdown to get structured children
+          // But for mediaGroup, we need to preserve the raw value for direct processing
           try {
             const innerProcessor = this.createInnerProcessor();
             const innerTree = innerProcessor.parse(node.value || '');
             const processedInnerTree = innerProcessor.runSync(innerTree);
             
             node.children = processedInnerTree.children;
-            delete node.value; // Remove text value since we now have children
+            
+            // Only delete value for non-mediaGroup blocks
+            // mediaGroup needs raw value for media reference extraction
+            if (node.lang !== 'mediaGroup') {
+              delete node.value; // Remove text value since we now have children
+            }
           } catch (error) {
             // If processing fails, keep the raw value
             if (this.options.enableLogging) {

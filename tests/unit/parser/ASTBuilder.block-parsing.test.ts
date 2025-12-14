@@ -552,6 +552,7 @@ Process completed by {user:system.admin} on {date:2024-01-30}
       expect(adf.content[0].type).toBe('expand');
       
       const expandContent = adf.content[0].content || [];
+      console.log('🔍 Expand content structure:', JSON.stringify(expandContent, null, 2));
       
       const warningPanel = expandContent.find((node: any) => 
         node.type === 'panel' && node.attrs?.panelType === 'warning'

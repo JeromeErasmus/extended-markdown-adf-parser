@@ -12,7 +12,7 @@ describe('Working Elements Validation Tests', () => {
     parser = new Parser({ enableAdfExtensions: true });
   });
 
-  describe('✅ WORKING ELEMENTS - Document Structure', () => {
+  describe('WORKING ELEMENTS - Document Structure', () => {
     it('should convert document to proper ADF doc node', async () => {
       const markdown = 'Simple document content';
       const result = await parser.markdownToAdf(markdown);
@@ -45,7 +45,7 @@ describe('Working Elements Validation Tests', () => {
     });
   });
 
-  describe('✅ WORKING ELEMENTS - Headings (All Levels)', () => {
+  describe('WORKING ELEMENTS - Headings (All Levels)', () => {
     it('should convert all heading levels to proper ADF heading nodes', async () => {
       const markdown = `# Heading 1
 ## Heading 2
@@ -67,7 +67,7 @@ describe('Working Elements Validation Tests', () => {
     });
   });
 
-  describe('✅ WORKING ELEMENTS - Text Formatting Marks', () => {
+  describe('WORKING ELEMENTS - Text Formatting Marks', () => {
     it('should convert bold text to strong mark', async () => {
       const markdown = '**bold text**';
       const result = await parser.markdownToAdf(markdown);
@@ -117,7 +117,7 @@ describe('Working Elements Validation Tests', () => {
     });
   });
 
-  describe('✅ WORKING ELEMENTS - Lists', () => {
+  describe('WORKING ELEMENTS - Lists', () => {
     it('should convert bullet lists to proper ADF bulletList nodes', async () => {
       const markdown = `- Item 1
 - Item 2
@@ -153,7 +153,7 @@ describe('Working Elements Validation Tests', () => {
     });
   });
 
-  describe('✅ WORKING ELEMENTS - Tables', () => {
+  describe('WORKING ELEMENTS - Tables', () => {
     it('should convert tables to proper ADF table structure', async () => {
       const markdown = `| Header 1 | Header 2 | Header 3 |
 |----------|----------|----------|
@@ -181,7 +181,7 @@ describe('Working Elements Validation Tests', () => {
     });
   });
 
-  describe('✅ WORKING ELEMENTS - Quotes & Code', () => {
+  describe('WORKING ELEMENTS - Quotes & Code', () => {
     it('should convert blockquotes to proper ADF blockquote nodes', async () => {
       const markdown = '> This is a blockquote\n> with multiple lines';
       const result = await parser.markdownToAdf(markdown);
@@ -208,7 +208,7 @@ describe('Working Elements Validation Tests', () => {
     });
   });
 
-  describe('✅ WORKING ELEMENTS - ADF Panels (All Types)', () => {
+  describe('WORKING ELEMENTS - ADF Panels (All Types)', () => {
     it('should convert info panels to proper ADF panel nodes', async () => {
       const markdown = `~~~panel type=info title="Information"
 This is an info panel.
@@ -265,7 +265,7 @@ This is a note panel.
     });
   });
 
-  describe('✅ WORKING ELEMENTS - Interactive Elements', () => {
+  describe('WORKING ELEMENTS - Interactive Elements', () => {
     it('should convert expand sections to proper ADF expand nodes', async () => {
       const markdown = `~~~expand title="Click to expand"
 Hidden content here.
@@ -278,7 +278,7 @@ Hidden content here.
     });
   });
 
-  describe('✅ WORKING ELEMENTS - Media Elements (Some Working)', () => {
+  describe('WORKING ELEMENTS - Media Elements (Some Working)', () => {
     it('should convert media single blocks to proper ADF mediaSingle nodes', async () => {
       const markdown = `~~~mediaSingle layout=center width=80
 ![Description](media:media-id-123)
@@ -292,7 +292,7 @@ Hidden content here.
     });
   });
 
-  describe('✅ WORKING ELEMENTS - Complex Nested Structures', () => {
+  describe('WORKING ELEMENTS - Complex Nested Structures', () => {
     it('should handle nested lists inside panels', async () => {
       const markdown = `~~~panel type=info title="Requirements"
 Before installing:
@@ -338,7 +338,7 @@ npm install package
     });
   });
 
-  describe('✅ WORKING ELEMENTS - Frontmatter and Metadata', () => {
+  describe('WORKING ELEMENTS - Frontmatter and Metadata', () => {
     it('should handle frontmatter data', async () => {
       const markdown = `---
 title: "Test Document"
@@ -356,7 +356,7 @@ tags: [test, markdown, adf]
     });
   });
 
-  describe('✅ WORKING ELEMENTS - Edge Cases and Error Handling', () => {
+  describe('WORKING ELEMENTS - Edge Cases and Error Handling', () => {
     it('should handle empty content gracefully', async () => {
       const markdown = '';
       const result = await parser.markdownToAdf(markdown);

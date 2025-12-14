@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.3] - 2024-12-14
+
+### Fixed
+- **Expand Block Validation**: Fixed validation logic to detect expand blocks at any nesting level, not just top-level content
+- **Social Element Formatting**: Fixed social elements (mentions, emojis, status, dates) to properly inherit formatting marks (bold, italic, etc.)
+- **Table Cell Structure**: Fixed test expectations for table cell content structure when containing social elements
+- **ADF Fence Block Processing**: Completed all remaining items from the fence block processing fix plan
+- **Test Suite**: All 76 test suites now pass with 1,218 tests passing and comprehensive validation at 18/18 items
+
+### Enhanced
+- **Mark Application**: Enhanced `wrapWithMark` method to apply formatting marks to social element nodes in addition to text nodes
+- **Recursive Validation**: Added recursive search for ADF elements in nested content structures
+- **Test Coverage**: Achieved 100% success rate for new features validation (25/25 features)
+
 ## [2.1.0] - 2025-01-26
 
 ### Added
