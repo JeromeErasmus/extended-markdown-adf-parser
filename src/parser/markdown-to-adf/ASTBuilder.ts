@@ -43,7 +43,7 @@ export class ASTBuilder {
     // Convert tokens to ADF nodes
     const content = this.convertTokensToNodes(contentTokens);
     
-    // Post-process for nested ADF fence blocks
+    // Post-process for nested ADF fence blocks with intelligent nesting detection
     const processedContent = this.postProcessNestedAdfFenceBlocks(content);
 
     return {
@@ -379,6 +379,7 @@ export class ASTBuilder {
     
     // The 'attrs' JSON parsing should be handled by the micromark extension
     
+    
     const content = token.children ? 
       this.convertTokensToNodes(token.children) :
       token.content ? this.parseBlockContentWithSocialElements(token.content) : [];
@@ -415,47 +416,29 @@ export class ASTBuilder {
   private convertMediaGroup(token: Token): ADFNode {
     const customAttrs = this.extractCustomAttributes(token.metadata);
     
-    // Process the token children to get media references and extract just those
+    // For mediaGroup, extract mediaReference nodes directly using regex
+    // instead of going through normal token processing that creates mediaSingle nodes
     let mediaNodes: ADFNode[] = [];
     
-    if (token.children && token.children.length > 0) {
-      // Process each child token and extract media references
-      for (const childToken of token.children) {
-        const processedChild = this.convertTokenToNode(childToken);
-        if (processedChild && processedChild.type === 'paragraph' && processedChild.content) {
-          // Extract only mediaReference nodes from paragraph content
-          const mediaRefs = processedChild.content.filter((node: ADFNode) => 
-            node.type === 'mediaReference' || node.type === 'media'
-          );
-          mediaNodes.push(...mediaRefs);
-        } else if (processedChild && (processedChild.type === 'mediaReference' || processedChild.type === 'media')) {
-          mediaNodes.push(processedChild);
+    // Get the raw content string
+    const rawContent = token.content || token.raw || '';
+    
+    // Extract media references using regex pattern (same as social element processing)
+    const mediaRegex = /!\[([^\]]*)\]\(media:([^)]+)\)/g;
+    let match;
+    
+    while ((match = mediaRegex.exec(rawContent)) !== null) {
+      const [, alt, id] = match;
+      
+      mediaNodes.push({
+        type: 'mediaReference',
+        attrs: {
+          id,
+          alt: alt || '',
+          mediaType: 'file',
+          collection: ''
         }
-      }
-    }
-
-    // Fallback to content-based extraction if no children processed
-    if (mediaNodes.length === 0) {
-      mediaNodes = this.extractMediaFromContent(token.content);
-    }
-
-    // If still no media nodes found, but we have content, try to process content directly for media
-    if (mediaNodes.length === 0 && token.content) {
-      // Process content as a paragraph and extract media from it
-      const paragraphToken: Token = {
-        type: 'paragraph',
-        content: token.content,
-        children: token.children,
-        position: token.position,
-        raw: token.raw || token.content
-      };
-      const paragraphNode = this.convertParagraph(paragraphToken);
-      if (paragraphNode.content) {
-        const mediaRefs = paragraphNode.content.filter((node: ADFNode) => 
-          node.type === 'mediaReference' || node.type === 'media'
-        );
-        mediaNodes.push(...mediaRefs);
-      }
+      });
     }
 
     const node: ADFNode = {
@@ -1157,8 +1140,8 @@ export class ASTBuilder {
   private extractMediaFromContent(content: string): ADFNode[] {
     const mediaNodes: ADFNode[] = [];
     
-    // Look for markdown images with media placeholders
-    const mediaRegex = /!\[([^\]]*)\]\(\{media:([^}]+)\}\)(?:\s*<!-- adf:media ([^>]*) -->)?/g;
+    // Look for markdown images with media placeholders - use media:id pattern (not {media:id})
+    const mediaRegex = /!\[([^\]]*)\]\(media:([^)]+)\)(?:\s*<!-- adf:media ([^>]*) -->)?/g;
     let match;
     
     while ((match = mediaRegex.exec(content)) !== null) {
@@ -1526,29 +1509,12 @@ export class ASTBuilder {
   }
 
   private postProcessInlineCards(content: ADFNode[], originalNodes: any[]): ADFNode[] {
-    // Check if there's an HTML comment with adf:inlineCard
-    const hasInlineCardComment = originalNodes.some(node => 
-      node.type === 'html' && node.value && node.value.includes('adf:inlineCard')
-    );
+    // DISABLED: This method was causing over-detection by converting ALL links
+    // when ANY adf:inlineCard comment was present. The pattern-based processing
+    // in processTextNodeForSocialElements already handles this correctly by
+    // matching specific [text](url)<!-- adf:inlineCard --> patterns.
     
-    if (!hasInlineCardComment) {
-      return content;
-    }
-    
-    // Convert text nodes with link marks to inline cards
-    return content.map(node => {
-      if (node.type === 'text' && node.marks) {
-        const linkMark = node.marks.find(mark => mark.type === 'link');
-        if (linkMark && linkMark.attrs) {
-          // Convert to inline card
-          return {
-            type: 'inlineCard',
-            attrs: { url: linkMark.attrs.href }
-          };
-        }
-      }
-      return node;
-    });
+    return content;
   }
 
   private convertMdastBlockquote(node: any): ADFNode {
@@ -2310,8 +2276,7 @@ export class ASTBuilder {
 
   /**
    * Post-process ADF nodes to handle nested ADF fence blocks
-   * This method identifies situations where ADF fence blocks should be nested
-   * within other blocks instead of being at the document level
+   * Smart nesting: Only nest blocks when there's evidence they should be nested
    */
   private postProcessNestedAdfFenceBlocks(content: ADFNode[]): ADFNode[] {
     const result: ADFNode[] = [];
@@ -2319,21 +2284,46 @@ export class ASTBuilder {
     for (let i = 0; i < content.length; i++) {
       const node = content[i];
       
-      // Check if this is an expand or panel that might have subsequent ADF blocks that should be nested
+      // Check if this is an expand or panel block that should collect subsequent ADF blocks
+      // For panels, only collect if there are mixed content types (not consecutive same-level panels)
       if ((node.type === 'expand' || node.type === 'panel') && i < content.length - 1) {
-        // Look ahead for subsequent ADF fence blocks that should be nested
+        // Look ahead for subsequent content that should be nested
         const nestedNodes: ADFNode[] = [];
         let j = i + 1;
+        let hasMixedContent = false;
+        
+        // For panels, check if this looks like mixed content vs consecutive panels
+        if (node.type === 'panel') {
+          // Look ahead to see if we have mixed content (ADF blocks + paragraphs)
+          // vs consecutive panels (all same type)
+          let hasNonPanel = false;
+          for (let k = j; k < content.length && k < j + 3; k++) {
+            if (content[k].type !== 'panel') {
+              hasNonPanel = true;
+              break;
+            }
+          }
+          
+          // If all subsequent nodes are panels, this is likely consecutive panels
+          // Don't nest in this case
+          if (!hasNonPanel && content.length > j && content[j].type === 'panel') {
+            result.push(node);
+            continue;
+          }
+        }
         
         while (j < content.length) {
           const nextNode = content[j];
           
-          // Check if this node should be nested (ADF fence block types)
-          if (this.isAdfFenceBlockType(nextNode.type)) {
+          // Collect any content that should be nested
+          if (this.isAdfFenceBlockType(nextNode.type) || nextNode.type === 'paragraph') {
             nestedNodes.push(nextNode);
+            if (nextNode.type === 'paragraph') {
+              hasMixedContent = true;
+            }
             j++;
           } else {
-            // Stop if we hit a non-ADF-fence block or text content that ends the nesting
+            // Stop if we hit other content that ends the nesting
             break;
           }
         }
