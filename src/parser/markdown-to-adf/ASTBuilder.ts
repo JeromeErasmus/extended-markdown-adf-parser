@@ -1288,6 +1288,18 @@ export class ASTBuilder {
       case 'adfFence':
         adfNode = this.convertAdfFenceNode(node as AdfFenceNode);
         break;
+      case 'strong':
+        adfNode = this.convertMdastStrong(node);
+        break;
+      case 'emphasis':
+        adfNode = this.convertMdastEmphasis(node);
+        break;
+      case 'inlineCode':
+        adfNode = this.convertMdastInlineCode(node);
+        break;
+      case 'link':
+        adfNode = this.convertMdastLink(node);
+        break;
       case 'yaml':
       case 'toml':
         // Skip frontmatter nodes - they're handled separately
@@ -1678,6 +1690,107 @@ export class ASTBuilder {
     }
 
     return adfNode;
+  }
+
+  /**
+   * Convert mdast strong (bold) node to ADF text with strong mark
+   */
+  private convertMdastStrong(node: any): ADFNode {
+    // Convert children and wrap in paragraph if needed
+    const content = this.convertMdastNodesToADF(node.children);
+    
+    // If content is text nodes, add strong marks
+    const processedContent = content.map(child => {
+      if (child.type === 'text') {
+        const marks = child.marks || [];
+        return {
+          ...child,
+          marks: [...marks, { type: 'strong' }]
+        };
+      }
+      return child;
+    });
+
+    // Return wrapped in paragraph if we have multiple nodes
+    if (processedContent.length === 1 && processedContent[0].type === 'text') {
+      return processedContent[0];
+    }
+    
+    return {
+      type: 'paragraph',
+      content: processedContent
+    };
+  }
+
+  /**
+   * Convert mdast emphasis (italic) node to ADF text with em mark
+   */
+  private convertMdastEmphasis(node: any): ADFNode {
+    // Convert children and wrap in paragraph if needed
+    const content = this.convertMdastNodesToADF(node.children);
+    
+    // If content is text nodes, add em marks
+    const processedContent = content.map(child => {
+      if (child.type === 'text') {
+        const marks = child.marks || [];
+        return {
+          ...child,
+          marks: [...marks, { type: 'em' }]
+        };
+      }
+      return child;
+    });
+
+    // Return wrapped in paragraph if we have multiple nodes
+    if (processedContent.length === 1 && processedContent[0].type === 'text') {
+      return processedContent[0];
+    }
+    
+    return {
+      type: 'paragraph',
+      content: processedContent
+    };
+  }
+
+  /**
+   * Convert mdast inlineCode node to ADF text with code mark
+   */
+  private convertMdastInlineCode(node: any): ADFNode {
+    return {
+      type: 'text',
+      text: node.value,
+      marks: [{ type: 'code' }]
+    };
+  }
+
+  /**
+   * Convert mdast link node to ADF text with link mark
+   */
+  private convertMdastLink(node: any): ADFNode {
+    // Convert children and wrap in paragraph if needed
+    const content = this.convertMdastNodesToADF(node.children);
+    
+    // If content is text nodes, add link marks
+    const processedContent = content.map(child => {
+      if (child.type === 'text') {
+        const marks = child.marks || [];
+        return {
+          ...child,
+          marks: [...marks, { type: 'link', attrs: { href: node.url } }]
+        };
+      }
+      return child;
+    });
+
+    // Return wrapped in paragraph if we have multiple nodes
+    if (processedContent.length === 1 && processedContent[0].type === 'text') {
+      return processedContent[0];
+    }
+    
+    return {
+      type: 'paragraph',
+      content: processedContent
+    };
   }
 
   /**
