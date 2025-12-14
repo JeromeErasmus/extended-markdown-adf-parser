@@ -17,7 +17,6 @@ import { ParserError, ValidationError } from '../errors/index.js';
 import { ConverterRegistry } from './ConverterRegistry.js';
 import { MarkdownToAdfEngine } from './engines/MarkdownToAdfEngine.js';
 import { AdfToMarkdownEngine } from './engines/AdfToMarkdownEngine.js';
-import { measureSync, measureAsync, globalPerformanceMonitor } from '../performance/PerformanceMonitor.js';
 import { ErrorRecoveryManager } from '../errors/ErrorRecovery.js';
 import { getSafeJSONLength } from '../utils/json-utils.js';
 
@@ -112,15 +111,13 @@ export class Parser {
    * Uses the core AdfToMarkdownEngine
    */
   adfToMarkdown(adf: ADFDocument, options?: ConversionOptions): string {
-    return measureSync('adfToMarkdown', () => {
-      // If options are provided, use a temporary engine with merged options
-      if (options && Object.keys(options).length > 0) {
-        const mergedOptions = { ...this.options, ...options };
-        const tempEngine = new AdfToMarkdownEngine(mergedOptions);
-        return tempEngine.convert(adf);
-      }
-      return this.adfToMdEngine.convert(adf);
-    }, getSafeJSONLength(adf), this.countNodes(adf.content || []));
+    // If options are provided, use a temporary engine with merged options
+    if (options && Object.keys(options).length > 0) {
+      const mergedOptions = { ...this.options, ...options };
+      const tempEngine = new AdfToMarkdownEngine(mergedOptions);
+      return tempEngine.convert(adf);
+    }
+    return this.adfToMdEngine.convert(adf);
   }
 
   /**
@@ -148,15 +145,13 @@ export class Parser {
    * Uses the core MarkdownToAdfEngine
    */
   markdownToAdf(markdown: string, options?: ConversionOptions): ADFDocument {
-    return measureSync('markdownToAdf', () => {
-      // If options are provided, use a temporary engine with merged options
-      if (options && Object.keys(options).length > 0) {
-        const mergedOptions = { ...this.options, ...options };
-        const tempEngine = new MarkdownToAdfEngine(mergedOptions);
-        return tempEngine.convert(markdown);
-      }
-      return this.mdToAdfEngine.convert(markdown);
-    }, markdown.length);
+    // If options are provided, use a temporary engine with merged options
+    if (options && Object.keys(options).length > 0) {
+      const mergedOptions = { ...this.options, ...options };
+      const tempEngine = new MarkdownToAdfEngine(mergedOptions);
+      return tempEngine.convert(markdown);
+    }
+    return this.mdToAdfEngine.convert(markdown);
   }
 
   /**
@@ -182,9 +177,7 @@ export class Parser {
    * Convert Extended Markdown to ADF using async engine
    */
   async markdownToAdfAsync(markdown: string, options?: ConversionOptions): Promise<ADFDocument> {
-    return await measureAsync('markdownToAdfAsync', async () => {
-      return await this.mdToAdfEngine.convertAsync(markdown);
-    }, markdown.length);
+    return await this.mdToAdfEngine.convertAsync(markdown);
   }
 
   /**
@@ -261,30 +254,6 @@ export class Parser {
     return new MarkdownValidator().validate(markdown);
   }
 
-  /**
-   * Get performance statistics for parser operations
-   */
-  getPerformanceStats() {
-    return {
-      adfToMarkdown: globalPerformanceMonitor.getStatistics('adfToMarkdown'),
-      markdownToAdf: globalPerformanceMonitor.getStatistics('markdownToAdf'),
-      markdownToAdfAsync: globalPerformanceMonitor.getStatistics('markdownToAdfAsync')
-    };
-  }
-
-  /**
-   * Generate performance report
-   */
-  getPerformanceReport(): string {
-    return globalPerformanceMonitor.generateReport();
-  }
-
-  /**
-   * Clear performance metrics
-   */
-  clearPerformanceMetrics(): void {
-    globalPerformanceMonitor.clear();
-  }
 
   /**
    * Get error recovery manager instance
@@ -293,16 +262,6 @@ export class Parser {
     return this.errorRecovery;
   }
 
-  /**
-   * Test parser performance against targets
-   */
-  validatePerformanceTargets() {
-    return {
-      adfToMarkdown: globalPerformanceMonitor.validatePerformanceTargets('adfToMarkdown'),
-      markdownToAdf: globalPerformanceMonitor.validatePerformanceTargets('markdownToAdf'),
-      markdownToAdfAsync: globalPerformanceMonitor.validatePerformanceTargets('markdownToAdfAsync')
-    };
-  }
   
   // Private implementation methods
   private registerConverters(): void {

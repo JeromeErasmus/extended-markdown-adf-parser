@@ -33,18 +33,6 @@ export { adfMicromarkExtension } from './parser/micromark/index.js';
 export { remarkAdf } from './parser/remark/index.js';
 export type { AdfFenceNode } from './parser/remark/index.js';
 
-// Export performance monitoring
-export { 
-  PerformanceMonitor, 
-  globalPerformanceMonitor, 
-  measureAsync, 
-  measureSync 
-} from './performance/PerformanceMonitor.js';
-export type { 
-  PerformanceMetrics, 
-  BenchmarkResult, 
-  PerformanceValidation 
-} from './performance/PerformanceMonitor.js';
 
 // Export streaming parser
 export { StreamingParser } from './parser/StreamingParser.js';

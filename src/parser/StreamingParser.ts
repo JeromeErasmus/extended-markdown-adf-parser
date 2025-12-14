@@ -7,7 +7,6 @@ import { Transform, Readable, PassThrough } from 'stream';
 import { pipeline } from 'stream/promises';
 import type { ADFDocument, ADFNode } from '../types';
 import { Parser } from '../index.js';
-import { measureAsync } from '../performance/PerformanceMonitor.js';
 import { safeJSONStringify } from '../utils/json-utils.js';
 
 export interface StreamingOptions {
@@ -55,8 +54,7 @@ export class StreamingParser {
     let bytesProcessed = 0;
     let chunksProcessed = 0;
     const startTime = Date.now();
-    const startMemory = process.memoryUsage().heapUsed;
-    let peakMemory = startMemory;
+    let peakMemory = 0;
 
     try {
       for await (const chunk of adfStream) {
@@ -65,15 +63,9 @@ export class StreamingParser {
         bytesProcessed += Buffer.byteLength(chunkStr);
         chunksProcessed++;
 
-        // Track memory usage
-        const currentMemory = process.memoryUsage().heapUsed;
-        if (currentMemory > peakMemory) {
-          peakMemory = currentMemory;
-        }
-
-        // Check memory limits
-        if (currentMemory > opts.maxMemoryUsage!) {
-          throw new Error(`Memory usage exceeded limit: ${currentMemory} > ${opts.maxMemoryUsage}`);
+        // Check buffer size limits
+        if (buffer.length > opts.maxMemoryUsage! / 2) {
+          throw new Error(`Buffer size exceeded limit`);
         }
 
         // Progress callback
@@ -87,12 +79,7 @@ export class StreamingParser {
         for (const doc of documents.documents) {
           try {
             const adf: ADFDocument = JSON.parse(doc);
-            const markdown = await measureAsync(
-              'streamingAdfToMarkdown',
-              async () => this.parser.adfToMarkdown(adf),
-              doc.length,
-              this.countNodesInDocument(adf)
-            );
+            const markdown = this.parser.adfToMarkdown(adf);
             
             if (opts.onChunk) {
               opts.onChunk(markdown);
@@ -113,12 +100,7 @@ export class StreamingParser {
       if (buffer.trim()) {
         try {
           const adf: ADFDocument = JSON.parse(buffer);
-          const markdown = await measureAsync(
-            'streamingAdfToMarkdown',
-            async () => this.parser.adfToMarkdown(adf),
-            buffer.length,
-            this.countNodesInDocument(adf)
-          );
+          const markdown = this.parser.adfToMarkdown(adf);
           
           if (opts.onChunk) {
             opts.onChunk(markdown);
@@ -139,7 +121,7 @@ export class StreamingParser {
       bytesProcessed,
       chunksProcessed,
       processingTime: Date.now() - startTime,
-      memoryPeak: peakMemory - startMemory
+      memoryPeak: peakMemory
     };
   }
 
@@ -155,8 +137,7 @@ export class StreamingParser {
     let bytesProcessed = 0;
     let chunksProcessed = 0;
     const startTime = Date.now();
-    const startMemory = process.memoryUsage().heapUsed;
-    let peakMemory = startMemory;
+    let peakMemory = 0;
 
     try {
       for await (const chunk of markdownStream) {
@@ -165,15 +146,9 @@ export class StreamingParser {
         bytesProcessed += Buffer.byteLength(chunkStr);
         chunksProcessed++;
 
-        // Track memory usage
-        const currentMemory = process.memoryUsage().heapUsed;
-        if (currentMemory > peakMemory) {
-          peakMemory = currentMemory;
-        }
-
-        // Check memory limits
-        if (currentMemory > opts.maxMemoryUsage!) {
-          throw new Error(`Memory usage exceeded limit: ${currentMemory} > ${opts.maxMemoryUsage}`);
+        // Check buffer size limits
+        if (buffer.length > opts.maxMemoryUsage! / 2) {
+          throw new Error(`Buffer size exceeded limit`);
         }
 
         // Progress callback
@@ -186,11 +161,7 @@ export class StreamingParser {
         
         for (const doc of documents.documents) {
           try {
-            const adf = await measureAsync(
-              'streamingMarkdownToAdf',
-              async () => this.parser.markdownToAdfAsync(doc),
-              doc.length
-            );
+            const adf = await this.parser.markdownToAdfAsync(doc);
             
             if (opts.onChunk) {
               opts.onChunk(safeJSONStringify(adf));
@@ -210,11 +181,7 @@ export class StreamingParser {
       // Process any remaining content
       if (buffer.trim()) {
         try {
-          const adf = await measureAsync(
-            'streamingMarkdownToAdf',
-            async () => this.parser.markdownToAdfAsync(buffer),
-            buffer.length
-          );
+          const adf = await this.parser.markdownToAdfAsync(buffer);
           
           if (opts.onChunk) {
             opts.onChunk(safeJSONStringify(adf));
@@ -235,7 +202,7 @@ export class StreamingParser {
       bytesProcessed,
       chunksProcessed,
       processingTime: Date.now() - startTime,
-      memoryPeak: peakMemory - startMemory
+      memoryPeak: peakMemory
     };
   }
 
@@ -259,8 +226,7 @@ export class StreamingParser {
     const startTime = Date.now();
     let bytesProcessed = 0;
     let chunksProcessed = 0;
-    const startMemory = process.memoryUsage().heapUsed;
-    let peakMemory = startMemory;
+    let peakMemory = 0;
 
     try {
       if (direction === 'adf-to-md') {
@@ -280,11 +246,6 @@ export class StreamingParser {
       // Get file stats
       const stats = fs.statSync(inputPath);
       bytesProcessed = stats.size;
-      
-      const currentMemory = process.memoryUsage().heapUsed;
-      if (currentMemory > peakMemory) {
-        peakMemory = currentMemory;
-      }
 
     } catch (error) {
       outputStream.destroy();
@@ -296,7 +257,7 @@ export class StreamingParser {
       bytesProcessed,
       chunksProcessed,
       processingTime: Date.now() - startTime,
-      memoryPeak: peakMemory - startMemory
+      memoryPeak: peakMemory
     };
   }
 

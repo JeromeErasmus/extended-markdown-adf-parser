@@ -61,7 +61,6 @@ export default defineConfig([
   {
     entry: {
       streaming: 'src/parser/StreamingParser.ts',
-      performance: 'src/performance/PerformanceMonitor.ts',
       errors: 'src/errors/ErrorRecovery.ts'
     },
     format: ['cjs'],
@@ -92,7 +91,6 @@ export default defineConfig([
   {
     entry: {
       streaming: 'src/parser/StreamingParser.ts',
-      performance: 'src/performance/PerformanceMonitor.ts',
       errors: 'src/errors/ErrorRecovery.ts'
     },
     format: ['esm'],

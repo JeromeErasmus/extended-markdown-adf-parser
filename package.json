@@ -1,6 +1,6 @@
 {
   "name": "extended-markdown-adf-parser",
-  "version": "2.3.6",
+  "version": "2.4.0",
   "description": "Bidirectional parser for ADF and Extended Markdown",
   "packageManager": "yarn@4.7.0",
   "type": "module",
@@ -18,12 +18,6 @@
       "import": "./dist/streaming.mjs",
       "require": "./dist/streaming.cjs",
       "default": "./dist/streaming.mjs"
-    },
-    "./performance": {
-      "types": "./dist/performance.d.cts",
-      "import": "./dist/performance.mjs",
-      "require": "./dist/performance.cjs",
-      "default": "./dist/performance.mjs"
     },
     "./errors": {
       "types": "./dist/errors.d.cts",
