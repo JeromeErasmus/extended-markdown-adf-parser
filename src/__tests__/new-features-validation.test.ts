@@ -5,14 +5,14 @@
 
 import { Parser } from '../index.js';
 
-describe('🆕 NEW FEATURES - Previously non-working elements', () => {
+describe('NEW FEATURES - Previously non-working elements', () => {
   let parser: Parser;
 
   beforeEach(() => {
     parser = new Parser({ enableAdfExtensions: true });
   });
 
-  describe('✅ NOW WORKING - Social Elements', () => {
+  describe('NOW WORKING - Social Elements', () => {
     it('should convert user mentions to proper ADF mention nodes', async () => {
       const markdown = 'Hello {user:john.doe}!';
       const result = await parser.markdownToAdf(markdown);
@@ -114,7 +114,7 @@ describe('🆕 NEW FEATURES - Previously non-working elements', () => {
     });
   });
 
-  describe('✅ NOW WORKING - Media Elements', () => {
+  describe('NOW WORKING - Media Elements', () => {
     it('should convert simple media references to proper ADF mediaSingle nodes', async () => {
       const markdown = '![Alt text](media:123456)';
       const result = await parser.markdownToAdf(markdown);
@@ -169,7 +169,7 @@ describe('🆕 NEW FEATURES - Previously non-working elements', () => {
     });
   });
 
-  describe('✅ NOW WORKING - Advanced Text Formatting', () => {
+  describe('NOW WORKING - Advanced Text Formatting', () => {
     it('should handle underline marks via metadata comments', async () => {
       const markdown = '<!-- adf:text underline=true -->Underlined text<!-- /adf:text -->';
       const result = await parser.markdownToAdf(markdown);
@@ -178,6 +178,7 @@ describe('🆕 NEW FEATURES - Previously non-working elements', () => {
       expect(paragraph.content).toHaveLength(1);
       
       const textNode = paragraph.content[0];
+      
       expect(textNode.type).toBe('text');
       expect(textNode.text).toBe('Underlined text');
       expect(textNode.marks).toHaveLength(1);
@@ -255,7 +256,7 @@ describe('🆕 NEW FEATURES - Previously non-working elements', () => {
     });
   });
 
-  describe('✅ NOW WORKING - Complex Combinations', () => {
+  describe('NOW WORKING - Complex Combinations', () => {
     it('should handle tables with formatted content and social elements', async () => {
       const markdown = `| User | Status | Notes |
 |------|--------|-------|
@@ -308,31 +309,31 @@ describe('🆕 NEW FEATURES - Previously non-working elements', () => {
     });
   });
 
-  describe('📊 FEATURE COMPLETION VALIDATION', () => {
+  describe('FEATURE COMPLETION VALIDATION', () => {
     it('should validate all previously non-working features now work', () => {
       const nowWorkingFeatures = [
-        '✅ User mentions ({user:id} syntax)',
-        '✅ Emoji (:emoji: syntax)', 
-        '✅ Date nodes ({date:YYYY-MM-DD} syntax)',
-        '✅ Status nodes ({status:text} syntax)',
-        '✅ Simple media references (![](media:id))',
-        '✅ Inline card elements',
-        '✅ Advanced text formatting via metadata comments',
-        '✅ Underline marks',
-        '✅ Text color marks',
-        '✅ Background color marks',
-        '✅ Subscript/superscript marks'
+        'User mentions ({user:id} syntax)',
+        'Emoji (:emoji: syntax)', 
+        'Date nodes ({date:YYYY-MM-DD} syntax)',
+        'Status nodes ({status:text} syntax)',
+        'Simple media references (![](media:id))',
+        'Inline card elements',
+        'Advanced text formatting via metadata comments',
+        'Underline marks',
+        'Text color marks',
+        'Background color marks',
+        'Subscript/superscript marks'
       ];
 
-      console.log('\\n🎉 SUCCESS: All previously non-working features are now implemented!');
-      console.log('\\n🟢 NEW WORKING FEATURES:');
+      console.log('\\nSUCCESS: All previously non-working features are now implemented!');
+      console.log('\\nNEW WORKING FEATURES:');
       nowWorkingFeatures.forEach(feature => console.log(`  ${feature}`));
       
-      console.log('\\n📊 UPDATED SUMMARY:');
+      console.log('\\nUPDATED SUMMARY:');
       console.log(`  Total previously documented features: 25`);
       console.log(`  Previously working: 14 (56%)`);
       console.log(`  Newly implemented: ${nowWorkingFeatures.length} (44%)`);
-      console.log(`  NEW SUCCESS RATE: 100% (25/25) 🎯`);
+      console.log(`  NEW SUCCESS RATE: 100% (25/25)`);
       
       // All features should now work
       expect(nowWorkingFeatures.length).toBe(11);

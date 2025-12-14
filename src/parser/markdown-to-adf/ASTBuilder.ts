@@ -468,6 +468,20 @@ export class ASTBuilder {
   }
 
   private convertText(token: Token): ADFNode {
+    // Check if this token has metadata with marks (from span-style comments)
+    // The metadata might be stored in token.metadata or if this came from mdast, check for common sources
+    if (token.metadata?.adfMetadata && Array.isArray(token.metadata.adfMetadata)) {
+      const metadata = token.metadata.adfMetadata[0];
+      if (metadata && metadata.marks && Array.isArray(metadata.marks)) {
+        // Create text node with the marks from metadata
+        return {
+          type: 'text',
+          text: token.content,
+          marks: metadata.marks
+        };
+      }
+    }
+    
     return {
       type: 'text',
       text: token.content
@@ -1281,15 +1295,19 @@ export class ASTBuilder {
         return null;
       case 'text':
         // Check if this text node has metadata with marks (from span-style comments)
+        console.log('DEBUG: Processing text node:', JSON.stringify(node, null, 2));
         if (node.data?.adfMetadata && Array.isArray(node.data.adfMetadata)) {
+          console.log('DEBUG: Found adfMetadata:', JSON.stringify(node.data.adfMetadata, null, 2));
           const metadata = node.data.adfMetadata[0];
           if (metadata && metadata.marks && Array.isArray(metadata.marks)) {
+            console.log('DEBUG: Found marks:', JSON.stringify(metadata.marks, null, 2));
             // Create text node with the marks from metadata
             adfNode = {
               type: 'text',
               text: node.value,
               marks: metadata.marks
             };
+            console.log('DEBUG: Created ADF node with marks:', JSON.stringify(adfNode, null, 2));
             break;
           }
         }
@@ -1757,6 +1775,19 @@ export class ASTBuilder {
   private convertMdastInlineNode(node: any): ADFNode | ADFNode[] | null {
     switch (node.type) {
       case 'text':
+        // Check if this text node has metadata with marks (from span-style comments)
+        if (node.data?.adfMetadata && Array.isArray(node.data.adfMetadata)) {
+          const metadata = node.data.adfMetadata[0];
+          if (metadata && metadata.marks && Array.isArray(metadata.marks)) {
+            // Create text node with the marks from metadata
+            return {
+              type: 'text' as const,
+              text: node.value,
+              marks: metadata.marks
+            };
+          }
+        }
+        
         // Process text node for social elements and special syntax
         return this.processTextNodeForSocialElements(node.value);
       

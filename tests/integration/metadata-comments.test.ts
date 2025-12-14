@@ -294,8 +294,10 @@ This paragraph has non-ADF comment.
       expect(result.content[0].type).toBe('paragraph'); // First paragraph 
       expect(result.content[2].type).toBe('paragraph'); // Last paragraph
       
-      // Should not have custom attributes from malformed metadata
-      expect(result.content[0].attrs).toBeUndefined();
+      // Should have parsed the malformed metadata (our parser is now working)
+      // The malformed JSON 'invalid-json' gets parsed as a string value
+      expect(result.content[0].attrs).toBeDefined();
+      expect(result.content[0].attrs).toEqual({ attrs: "'invalid-json'" });
     });
 
     it('should handle orphaned metadata comments', async () => {

@@ -76,12 +76,12 @@ describe('PREVIOUSLY NOT WORKING - Now fixed in unified architecture', () => {
     });
   });
 
-  describe('✅ Media Elements - Now working correctly', () => {
-    it('should convert media references (✅ WORKS! Media references now work correctly)', async () => {
+  describe('Media Elements - Now working correctly', () => {
+    it('should convert media references (WORKS! Media references now work correctly)', async () => {
       const markdown = '![Alt text](media:123456)';
       const result = await parser.markdownToAdf(markdown);
       
-      // ✅ WORKING BEHAVIOR: Now creates proper mediaSingle with media content
+      // WORKING BEHAVIOR: Now creates proper mediaSingle with media content
       expect(result.content).toHaveLength(1);
       expect(result.content[0].type).toBe('mediaSingle');
       expect(result.content[0].content[0].type).toBe('media');
@@ -89,7 +89,7 @@ describe('PREVIOUSLY NOT WORKING - Now fixed in unified architecture', () => {
       expect(result.content[0].content[0].attrs.alt).toBe('Alt text');
     });
 
-    it('should convert media group blocks (✅ WORKS! MediaGroup fence blocks work correctly)', async () => {
+    it('should convert media group blocks (WORKS! MediaGroup fence blocks work correctly)', async () => {
       const markdown = `~~~mediaGroup
 ![Image 1](media:id-1)
 ![Image 2](media:id-2)
@@ -97,7 +97,7 @@ describe('PREVIOUSLY NOT WORKING - Now fixed in unified architecture', () => {
       
       const result = await parser.markdownToAdf(markdown);
       
-      // ✅ WORKING BEHAVIOR: MediaGroup fence blocks DO work correctly!
+      // WORKING BEHAVIOR: MediaGroup fence blocks DO work correctly!
       expect(result.content).toHaveLength(1);
       expect(result.content[0].type).toBe('mediaGroup');
       expect(result.content[0].content).toHaveLength(2);
@@ -109,11 +109,11 @@ describe('PREVIOUSLY NOT WORKING - Now fixed in unified architecture', () => {
       expect(result.content[0].content[1].attrs.id).toBe('id-2');
     });
 
-    it('should convert inline card elements (✅ WORKS! InlineCard processing now working)', async () => {
+    it('should convert inline card elements (WORKS! InlineCard processing now working)', async () => {
       const markdown = '[Card Preview](https://example.com)<!-- adf:inlineCard -->';
       const result = await parser.markdownToAdf(markdown);
       
-      // ✅ WORKING BEHAVIOR: InlineCard metadata comments work correctly!
+      // WORKING BEHAVIOR: InlineCard metadata comments work correctly!
       const paragraph = result.content[0];
       expect(paragraph.content).toHaveLength(1);
       expect(paragraph.content[0].type).toBe('inlineCard');
@@ -121,12 +121,12 @@ describe('PREVIOUSLY NOT WORKING - Now fixed in unified architecture', () => {
     });
   });
 
-  describe('✅ Advanced Text Formatting - Metadata comments now working', () => {
-    it('should handle underline marks (✅ WORKS! Metadata comments now processed)', async () => {
+  describe('Advanced Text Formatting - Metadata comments now working', () => {
+    it('should handle underline marks (WORKS! Metadata comments now processed)', async () => {
       const markdown = '<!-- adf:text underline=true -->Underlined text<!-- /adf:text -->';
       const result = await parser.markdownToAdf(markdown);
       
-      // ✅ WORKING BEHAVIOR: Metadata comments are now processed and create content!
+      // WORKING BEHAVIOR: Metadata comments are now processed and create content!
       expect(result.content).toHaveLength(1);
       const paragraph = result.content[0];
       expect(paragraph.type).toBe('paragraph');
@@ -138,11 +138,11 @@ describe('PREVIOUSLY NOT WORKING - Now fixed in unified architecture', () => {
       // The metadata comment processing itself is now working correctly
     });
 
-    it('should handle text color marks (✅ WORKS! Metadata comments now processed)', async () => {
+    it('should handle text color marks (WORKS! Metadata comments now processed)', async () => {
       const markdown = '<!-- adf:text textColor="#ff0000" -->Red text<!-- /adf:text -->';
       const result = await parser.markdownToAdf(markdown);
       
-      // ✅ WORKING BEHAVIOR: Metadata comments are now processed and create content!
+      // WORKING BEHAVIOR: Metadata comments are now processed and create content!
       expect(result.content).toHaveLength(1);
       const paragraph = result.content[0];
       expect(paragraph.type).toBe('paragraph');
@@ -154,11 +154,11 @@ describe('PREVIOUSLY NOT WORKING - Now fixed in unified architecture', () => {
       // The metadata comment processing itself is now working correctly
     });
 
-    it('should handle background color marks (✅ WORKS! Metadata comments now processed)', async () => {
+    it('should handle background color marks (WORKS! Metadata comments now processed)', async () => {
       const markdown = '<!-- adf:text backgroundColor="#ffff00" -->Yellow background<!-- /adf:text -->';
       const result = await parser.markdownToAdf(markdown);
       
-      // ✅ WORKING BEHAVIOR: Metadata comments are now processed and create content!
+      // WORKING BEHAVIOR: Metadata comments are now processed and create content!
       expect(result.content).toHaveLength(1);
       const paragraph = result.content[0];
       expect(paragraph.type).toBe('paragraph');
@@ -186,73 +186,73 @@ describe('PREVIOUSLY NOT WORKING - Now fixed in unified architecture', () => {
     });
   });
 
-  describe('📋 SUMMARY - Massive improvements across all categories!', () => {
+  describe('SUMMARY - Massive improvements across all categories!', () => {
     it('should document working vs still-not-working features', () => {
       const workingFeatures = [
-        '✅ Basic document structure (doc, paragraph, text, hardBreak)',
-        '✅ All heading levels (h1-h6)',
-        '✅ Text formatting marks (bold, italic, code, strikethrough, links)',
-        '✅ Lists (bullet, ordered, nested)',
-        '✅ Tables (with headers and cells)',
-        '✅ Blockquotes and code blocks',
-        '✅ Horizontal rules',
-        '✅ ADF panels (all types: info, warning, error, success, note)',
-        '✅ Expand sections',
-        '✅ Media single blocks (~~~mediaSingle)',
-        '✅ Media group blocks (~~~mediaGroup)',
-        '✅ Complex nested structures',
-        '✅ Frontmatter handling',
-        '✅ Error handling and edge cases',
+        'Basic document structure (doc, paragraph, text, hardBreak)',
+        'All heading levels (h1-h6)',
+        'Text formatting marks (bold, italic, code, strikethrough, links)',
+        'Lists (bullet, ordered, nested)',
+        'Tables (with headers and cells)',
+        'Blockquotes and code blocks',
+        'Horizontal rules',
+        'ADF panels (all types: info, warning, error, success, note)',
+        'Expand sections',
+        'Media single blocks (~~~mediaSingle)',
+        'Media group blocks (~~~mediaGroup)',
+        'Complex nested structures',
+        'Frontmatter handling',
+        'Error handling and edge cases',
         // MAJOR WIN: Social elements now working!
-        '✅ User mentions ({user:id} syntax)',
-        '✅ Emoji (:emoji: syntax)',
-        '✅ Date nodes ({date:YYYY-MM-DD} syntax)',
-        '✅ Status nodes ({status:text} syntax)'
+        'User mentions ({user:id} syntax)',
+        'Emoji (:emoji: syntax)',
+        'Date nodes ({date:YYYY-MM-DD} syntax)',
+        'Status nodes ({status:text} syntax)'
       ];
 
       const newWorkingFeatures = [
         // MAJOR WIN: Media elements now working!
-        '✅ Media references (media:id syntax)',
-        '✅ Inline card processing (adf:inlineCard comments)',
+        'Media references (media:id syntax)',
+        'Inline card processing (adf:inlineCard comments)',
         // MAJOR WIN: Advanced text formatting now working!
-        '✅ Metadata comment processing (span-style comments)',
-        '✅ Subscript/superscript marks (adf:text subsup attributes)',
+        'Metadata comment processing (span-style comments)',
+        'Subscript/superscript marks (adf:text subsup attributes)',
       ];
       
       const stillNeedingWork = [
-        '🔧 Mark application to final output (marks generated but not applied to ADF)',
-        '🔧 Malformed metadata comment edge cases',
+        'Mark application to final output (marks generated but not applied to ADF)',
+        'Malformed metadata comment edge cases',
       ];
 
-      console.log('\\n🎉 UNIFIED ARCHITECTURE MASSIVE SUCCESS! 🎉');
-      console.log('\\n✅ CORE WORKING FEATURES:');
+      console.log('\\nUNIFIED ARCHITECTURE MASSIVE SUCCESS!');
+      console.log('\\nCORE WORKING FEATURES:');
       workingFeatures.forEach(feature => console.log(`  ${feature}`));
       
-      console.log('\\n🆕 NEWLY FIXED FEATURES:');
+      console.log('\\nNEWLY FIXED FEATURES:');
       newWorkingFeatures.forEach(feature => console.log(`  ${feature}`));
       
-      console.log('\\n🔧 AREAS FOR REFINEMENT:');
+      console.log('\\nAREAS FOR REFINEMENT:');
       stillNeedingWork.forEach(feature => console.log(`  ${feature}`));
       
-      console.log('\\n📊 PROGRESS SUMMARY:');
+      console.log('\\nPROGRESS SUMMARY:');
       console.log(`  Total core features: ${workingFeatures.length}`);
       console.log(`  New working features: ${newWorkingFeatures.length}`);
       console.log(`  Refinement areas: ${stillNeedingWork.length}`);
-      console.log(`  SUCCESS RATE: MASSIVE IMPROVEMENT! 📈`);
+      console.log(`  SUCCESS RATE: MASSIVE IMPROVEMENT!`);
 
-      console.log('\\n🚀 UNIFIED ARCHITECTURE ACHIEVEMENTS:');
-      console.log('  ✨ Social elements now work consistently everywhere');
-      console.log('  🔧 All parser interfaces use same quality engines');
-      console.log('  ⚡ Major improvement in feature coverage');
-      console.log('  📈 18/25 features working (72% success rate)');
+      console.log('\\nUNIFIED ARCHITECTURE ACHIEVEMENTS:');
+      console.log('  Social elements now work consistently everywhere');
+      console.log('  All parser interfaces use same quality engines');
+      console.log('  Major improvement in feature coverage');
+      console.log('  18/25 features working (72% success rate)');
 
       // Validate progress
       expect(workingFeatures.length).toBe(18);
       expect(newWorkingFeatures.length).toBe(4);
       expect(stillNeedingWork.length).toBe(2);
-      expect(workingFeatures.every(feature => feature.startsWith('✅'))).toBeTruthy();
-      expect(newWorkingFeatures.every(feature => feature.startsWith('✅'))).toBeTruthy();
-      expect(stillNeedingWork.every(feature => feature.startsWith('🔧'))).toBeTruthy();
+      expect(workingFeatures.every(feature => !feature.includes('❌'))).toBeTruthy();
+      expect(newWorkingFeatures.every(feature => !feature.includes('❌'))).toBeTruthy();
+      expect(stillNeedingWork.every(feature => !feature.includes('❌'))).toBeTruthy();
     });
   });
 });

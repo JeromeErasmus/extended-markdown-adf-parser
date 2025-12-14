@@ -20,6 +20,7 @@ export interface AdfMetadata {
   nodeType: string;
   attrs?: Record<string, any>;
   raw: string;
+  marks?: any[]; // Array of marks for text formatting
 }
 
 /**
@@ -229,6 +230,7 @@ export function processSpanMetadataComments(tree: Root): Root {
       // Pattern: <!-- adf:text attributes -->content<!-- /adf:text -->
       // Use a simpler pattern since backreference might be problematic
       const spanMatch = node.value.match(/^<!--\s*adf:(\w+)\s+(.*?)\s*-->(.*?)<!--\s*\/adf:\w+\s*-->$/);
+      
       
       if (spanMatch) {
         const [, nodeType, attrString, content] = spanMatch;
