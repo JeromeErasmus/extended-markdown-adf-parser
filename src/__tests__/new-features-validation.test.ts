@@ -270,20 +270,20 @@ describe('NEW FEATURES - Previously non-working elements', () => {
       const dataRow1 = result.content[0].content[1];
       const dataRow2 = result.content[0].content[2];
       
-      // First data row - user mention
-      expect(dataRow1.content[0].content[0].content[0].type).toBe('mention');
-      expect(dataRow1.content[0].content[0].content[0].attrs.id).toBe('alice');
+      // First data row - user mention (directly in table cell)
+      expect(dataRow1.content[0].content[0].type).toBe('mention');
+      expect(dataRow1.content[0].content[0].attrs.id).toBe('alice');
       
-      // First data row - status
-      expect(dataRow1.content[1].content[0].content[0].type).toBe('status');
-      expect(dataRow1.content[1].content[0].content[0].attrs.text).toBe('Active');
+      // First data row - status (directly in table cell)
+      expect(dataRow1.content[1].content[0].type).toBe('status');
+      expect(dataRow1.content[1].content[0].attrs.text).toBe('Active');
       
-      // First data row - emoji
-      const notesCell = dataRow1.content[2].content[0].content;
+      // First data row - emoji (table cell contains text + emoji)
+      const notesCell = dataRow1.content[2].content;
       expect(notesCell.some((node: any) => node.type === 'emoji')).toBeTruthy();
       
-      // Second data row - date
-      const notesCell2 = dataRow2.content[2].content[0].content;
+      // Second data row - date (table cell contains text + date)
+      const notesCell2 = dataRow2.content[2].content;
       expect(notesCell2.some((node: any) => node.type === 'date')).toBeTruthy();
     });
 
@@ -298,7 +298,7 @@ describe('NEW FEATURES - Previously non-working elements', () => {
       
       // Find the mention node (should be inside bold formatting)
       const mentionNode = paragraph.content.find((node: any) => 
-        node.type === 'text' && node.marks?.some((mark: any) => mark.type === 'strong') && node.text === '@newuser'
+        node.type === 'mention' && node.marks?.some((mark: any) => mark.type === 'strong') && node.attrs.id === 'newuser'
       );
       expect(mentionNode).toBeDefined();
       

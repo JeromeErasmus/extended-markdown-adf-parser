@@ -1848,9 +1848,11 @@ export class ASTBuilder {
     const childNodes = this.convertMdastInlineNodes(children);
     const mark = attrs ? { type: markType, attrs } : { type: markType };
     
-    // Apply the mark to all text nodes
+    // Apply the mark to text nodes and social elements that can have marks
+    const markableNodeTypes = ['text', 'mention', 'emoji', 'status', 'date', 'inlineCard'];
+    
     return childNodes.map(node => {
-      if (node.type === 'text') {
+      if (markableNodeTypes.includes(node.type)) {
         const marks = node.marks ? [...node.marks] : [];
         marks.push(mark);
         return {
