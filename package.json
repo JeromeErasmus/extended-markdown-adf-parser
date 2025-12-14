@@ -4,32 +4,32 @@
   "description": "Bidirectional parser for ADF and Extended Markdown",
   "packageManager": "yarn@4.7.0",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "types": "./dist/index.d.cts",
   "exports": {
     ".": {
       "types": "./dist/index.d.cts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "default": "./dist/index.js"
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.mjs"
     },
     "./streaming": {
       "types": "./dist/streaming.d.cts",
       "import": "./dist/streaming.mjs",
-      "require": "./dist/streaming.js",
-      "default": "./dist/streaming.js"
+      "require": "./dist/streaming.cjs",
+      "default": "./dist/streaming.mjs"
     },
     "./performance": {
       "types": "./dist/performance.d.cts",
       "import": "./dist/performance.mjs",
-      "require": "./dist/performance.js",
-      "default": "./dist/performance.js"
+      "require": "./dist/performance.cjs",
+      "default": "./dist/performance.mjs"
     },
     "./errors": {
       "types": "./dist/errors.d.cts",
       "import": "./dist/errors.mjs",
-      "require": "./dist/errors.js",
-      "default": "./dist/errors.js"
+      "require": "./dist/errors.cjs",
+      "default": "./dist/errors.mjs"
     }
   },
   "sideEffects": false,

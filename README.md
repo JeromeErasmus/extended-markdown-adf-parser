@@ -29,8 +29,8 @@ A bidirectional parser for converting between [Atlassian Document Format (ADF)](
 - **Full Fidelity**: Preserves all ADF attributes through metadata annotations  
   Custom attributes and styling information are maintained using HTML comment metadata, ensuring no data loss during conversion.
 
-- **Dual Module Support**: Works with both CommonJS and ES Modules automatically  
-  Supports `import { Parser } from 'pkg'` and `const { Parser } = require('pkg')` with automatic format selection for optimal bundling.
+- **Universal Module Support**: True dual package with zero configuration  
+  Supports CommonJS `require()`, ESM `import`, and dynamic `import()` with automatic format selection, bundled dependencies, and complete TypeScript compatibility.
 
 - **Type Safe**: Written in TypeScript with complete type definitions  
   Full TypeScript support with comprehensive type definitions for all ADF nodes, ensuring compile-time safety and excellent IDE support.
@@ -111,30 +111,58 @@ yarn add extended-markdown-adf-parser
 
 ## Module Support
 
-This package supports both **CommonJS** and **ES Modules (ESM)** for maximum compatibility:
+This package provides **full dual package support** for both **CommonJS** and **ES Modules (ESM)** with automatic format detection and zero configuration required.
 
-### ES Modules (Recommended)
+### ✅ CommonJS Support
+Works in Node.js projects, TypeScript projects compiling to CommonJS, and any environment expecting CommonJS modules:
 ```javascript
-import { Parser } from 'extended-markdown-adf-parser';
+const { Parser } = require('extended-markdown-adf-parser');
+
+const parser = new Parser();
+const adf = parser.markdownToAdf('# Hello World');
 ```
 
-### CommonJS
+### ✅ ES Modules (ESM) Support
+Works in modern Node.js projects, browsers, and TypeScript projects using ES modules:
 ```javascript
+import { Parser } from 'extended-markdown-adf-parser';
+
+const parser = new Parser();
+const adf = parser.markdownToAdf('# Hello World');
+```
+
+### ✅ Dynamic Import (Universal)
+Works in both CommonJS and ESM environments:
+```javascript
+const { Parser } = await import('extended-markdown-adf-parser');
+
+const parser = new Parser();
+const adf = parser.markdownToAdf('# Hello World');
+```
+
+### ✅ TypeScript Support
+Full type definitions for all module systems:
+```typescript
+import { Parser, type ADFDocument, type ConversionOptions } from 'extended-markdown-adf-parser';
+// or
 const { Parser } = require('extended-markdown-adf-parser');
 ```
 
-### TypeScript
-```typescript
-import { Parser, type ADFDocument, type ConversionOptions } from 'extended-markdown-adf-parser';
-```
+### Module Resolution Details
+- **Package Type**: Dual package with proper `exports` configuration
+- **CommonJS Output**: Bundled `.cjs` files with all dependencies included
+- **ESM Output**: Tree-shakable `.mjs` files with external dependencies
+- **Automatic Selection**: Node.js automatically selects the correct format
+- **Zero Configuration**: No build tools or configuration changes required
 
 ## Usage
 
 ### Simple Example
 
 ```typescript
-import { Parser } from 'extended-markdown-adf-parser';
-// or: const { Parser } = require('extended-markdown-adf-parser');
+// Choose your preferred import method - both work identically
+import { Parser } from 'extended-markdown-adf-parser';           // ESM
+// const { Parser } = require('extended-markdown-adf-parser');  // CommonJS
 
 const parser = new Parser();
 
@@ -163,7 +191,9 @@ console.log(reconstructed); // Original ADF structure
 ### Complex Example with ADF Extensions
 
 ```typescript
+// Works with both CommonJS and ESM
 import { Parser } from 'extended-markdown-adf-parser';
+// const { Parser } = require('extended-markdown-adf-parser');
 
 // ADF extensions are enabled by default in the unified architecture
 const parser = new Parser();
