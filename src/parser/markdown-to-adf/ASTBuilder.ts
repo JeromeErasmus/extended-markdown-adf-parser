@@ -1509,12 +1509,45 @@ export class ASTBuilder {
   }
 
   private postProcessInlineCards(content: ADFNode[], originalNodes: any[]): ADFNode[] {
-    // DISABLED: This method was causing over-detection by converting ALL links
-    // when ANY adf:inlineCard comment was present. The pattern-based processing
-    // in processTextNodeForSocialElements already handles this correctly by
-    // matching specific [text](url)<!-- adf:inlineCard --> patterns.
+    // Process inline cards properly - only convert links that have explicit adf:inlineCard metadata
+    if (!originalNodes || originalNodes.length === 0) {
+      return content;
+    }
+
+    // Find links that should become inline cards by looking for adf:inlineCard comments that follow links
+    const linksToConvert = new Set<string>();
     
-    return content;
+    for (let i = 0; i < originalNodes.length - 1; i++) {
+      const currentNode = originalNodes[i];
+      const nextNode = originalNodes[i + 1];
+      
+      // Check if current node is a link and next node is an adf:inlineCard comment
+      if (currentNode.type === 'link' && 
+          nextNode.type === 'html' && 
+          nextNode.value?.includes('adf:inlineCard')) {
+        linksToConvert.add(currentNode.url);
+      }
+    }
+
+    if (linksToConvert.size === 0) {
+      return content;
+    }
+
+    // Convert only the specific links that have comments
+    return content.map(node => {
+      if (node.type === 'text' && node.marks?.some(mark => mark.type === 'link')) {
+        const linkMark = node.marks.find(mark => mark.type === 'link');
+        if (linkMark?.attrs?.href && linksToConvert.has(linkMark.attrs.href)) {
+          return {
+            type: 'inlineCard',
+            attrs: {
+              url: linkMark.attrs.href
+            }
+          };
+        }
+      }
+      return node;
+    });
   }
 
   private convertMdastBlockquote(node: any): ADFNode {
@@ -2292,23 +2325,31 @@ export class ASTBuilder {
         let j = i + 1;
         let hasMixedContent = false;
         
-        // For panels, check if this looks like mixed content vs consecutive panels
-        if (node.type === 'panel') {
-          // Look ahead to see if we have mixed content (ADF blocks + paragraphs)
-          // vs consecutive panels (all same type)
-          let hasNonPanel = false;
-          for (let k = j; k < content.length && k < j + 3; k++) {
-            if (content[k].type !== 'panel') {
-              hasNonPanel = true;
-              break;
-            }
-          }
-          
-          // If all subsequent nodes are panels, this is likely consecutive panels
-          // Don't nest in this case
-          if (!hasNonPanel && content.length > j && content[j].type === 'panel') {
+        // Check for consecutive same-type blocks that should remain separate
+        if (node.type === 'panel' || node.type === 'expand') {
+          // Look ahead to see if we have consecutive blocks of the same type
+          // These should NOT be nested
+          if (content[j] && content[j].type === node.type) {
+            // Consecutive panels or expands - keep separate
             result.push(node);
             continue;
+          }
+          
+          // For panels specifically, also check for multiple consecutive panels
+          if (node.type === 'panel') {
+            let hasOnlyPanels = true;
+            for (let k = j; k < content.length && k < j + 3; k++) {
+              if (content[k].type !== 'panel') {
+                hasOnlyPanels = false;
+                break;
+              }
+            }
+            
+            // If all subsequent nodes are panels, keep them separate
+            if (hasOnlyPanels && content.length > j) {
+              result.push(node);
+              continue;
+            }
           }
         }
         
