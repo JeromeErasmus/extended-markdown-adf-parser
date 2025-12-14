@@ -63,20 +63,51 @@ export function isAdfMetadataComment(value: string): boolean {
 }
 
 /**
- * Parse attributes from attribute string (key="value" key2="value2")
+ * Parse attributes from attribute string (key="value" key2="value2" or key=value key2=value2)
  */
 function parseAttributeString(attrString: string): Record<string, any> {
   const attrs: Record<string, any> = {};
   
-  // Match key="value" patterns, accounting for spaces around =
-  const attrRegex = /(\w+)\s*=\s*"([^"]*)"/g;
+  // First try to match quoted values: key="value"
+  const quotedRegex = /(\w+)\s*=\s*"([^"]*)"/g;
   let match;
   
-  while ((match = attrRegex.exec(attrString)) !== null) {
+  while ((match = quotedRegex.exec(attrString)) !== null) {
     const [, key, value] = match;
-    // Try to parse numeric values
-    const numericValue = Number(value);
-    attrs[key] = isNaN(numericValue) ? value : numericValue;
+    // Try to parse special boolean values
+    if (value === 'true') {
+      attrs[key] = true;
+    } else if (value === 'false') {
+      attrs[key] = false;
+    } else {
+      // Try to parse numeric values
+      const numericValue = Number(value);
+      attrs[key] = isNaN(numericValue) ? value : numericValue;
+    }
+  }
+  
+  // Then try unquoted values: key=value (avoid matching already parsed quoted values)
+  const unquotedRegex = /(\w+)\s*=\s*([^\s"]+)/g;
+  let unquotedMatch;
+  
+  while ((unquotedMatch = unquotedRegex.exec(attrString)) !== null) {
+    const [, key, value] = unquotedMatch;
+    
+    // Skip if we already parsed this key from quoted values
+    if (attrs.hasOwnProperty(key)) {
+      continue;
+    }
+    
+    // Try to parse special boolean values
+    if (value === 'true') {
+      attrs[key] = true;
+    } else if (value === 'false') {
+      attrs[key] = false;
+    } else {
+      // Try to parse numeric values
+      const numericValue = Number(value);
+      attrs[key] = isNaN(numericValue) ? value : numericValue;
+    }
   }
   
   return attrs;
@@ -187,11 +218,156 @@ export function findMetadataTarget(parent: Parent, commentIndex: number): Node |
 }
 
 /**
+ * Process span-style metadata comments like <!-- adf:text underline=true -->content<!-- /adf:text -->
+ */
+export function processSpanMetadataComments(tree: Root): Root {
+  const processedTree = JSON.parse(JSON.stringify(tree)) as Root;
+  
+  visit(processedTree, (node, index, parent) => {
+    // Check if this is an HTML node containing a span-style metadata comment
+    if (node.type === 'html' && typeof node.value === 'string' && parent && typeof index === 'number') {
+      // Pattern: <!-- adf:text attributes -->content<!-- /adf:text -->
+      // Use a simpler pattern since backreference might be problematic
+      const spanMatch = node.value.match(/^<!--\s*adf:(\w+)\s+(.*?)\s*-->(.*?)<!--\s*\/adf:\w+\s*-->$/);
+      
+      if (spanMatch) {
+        const [, nodeType, attrString, content] = spanMatch;
+        
+        // Parse attributes
+        const attrs = parseAttributeString(attrString);
+        
+        // Create a new text node with the metadata applied as marks
+        const marks: any[] = [];
+        for (const [key, value] of Object.entries(attrs)) {
+          switch (key) {
+            case 'underline':
+              if (value === 'true' || value === true) {
+                marks.push({ type: 'underline' });
+              }
+              break;
+            case 'textColor':
+              marks.push({ type: 'textColor', attrs: { color: value } });
+              break;
+            case 'backgroundColor':
+              marks.push({ type: 'backgroundColor', attrs: { color: value } });
+              break;
+            case 'subsup':
+              marks.push({ type: 'subsup', attrs: { type: value } });
+              break;
+          }
+        }
+        
+        // Create a paragraph with a text node that has marks
+        const newParagraph = {
+          type: 'paragraph',
+          children: [{
+            type: 'text',
+            value: content,
+            data: {
+              adfMetadata: [{
+                nodeType: nodeType,
+                attrs: attrs,
+                raw: node.value,
+                marks: marks
+              }]
+            }
+          }]
+        } as any;
+        
+        // Replace the HTML node with the new paragraph
+        if (Array.isArray(parent.children)) {
+          parent.children[index] = newParagraph;
+        }
+      }
+    }
+    
+    // Also look for paragraphs that might contain span-style metadata comments broken into multiple nodes
+    if (node.type === 'paragraph' && parent && typeof index === 'number') {
+      const paragraph = node as any;
+      if (!paragraph.children || !Array.isArray(paragraph.children)) return;
+      
+      // Look for pattern: html comment (opening) + text + html comment (closing)
+      for (let i = 0; i < paragraph.children.length - 2; i++) {
+        const openingComment = paragraph.children[i];
+        const textNode = paragraph.children[i + 1];
+        const closingComment = paragraph.children[i + 2];
+        
+        if (openingComment.type === 'html' && 
+            textNode.type === 'text' && 
+            closingComment.type === 'html') {
+          
+          // Check if opening comment matches pattern: <!-- adf:text ... -->
+          const openMatch = openingComment.value.match(/^<!--\s*adf:([a-zA-Z][a-zA-Z0-9]*)\s+(.+?)\s*-->$/);
+          // Check if closing comment matches pattern: <!-- /adf:text -->
+          const closeMatch = closingComment.value.match(/^<!--\s*\/adf:([a-zA-Z][a-zA-Z0-9]*)\s*-->$/);
+          
+          if (openMatch && closeMatch && openMatch[1] === closeMatch[1]) {
+            const nodeType = openMatch[1];
+            const attrString = openMatch[2];
+            const content = textNode.value;
+            
+            // Parse attributes
+            const attrs = parseAttributeString(attrString);
+            
+            // Create a new text node with the metadata applied as marks
+            const marks: any[] = [];
+            for (const [key, value] of Object.entries(attrs)) {
+              switch (key) {
+                case 'underline':
+                  if (value === 'true' || value === true) {
+                    marks.push({ type: 'underline' });
+                  }
+                  break;
+                case 'textColor':
+                  marks.push({ type: 'textColor', attrs: { color: value } });
+                  break;
+                case 'backgroundColor':
+                  marks.push({ type: 'backgroundColor', attrs: { color: value } });
+                  break;
+                case 'subsup':
+                  marks.push({ type: 'subsup', attrs: { type: value } });
+                  break;
+              }
+            }
+            
+            // Replace the three nodes with a single text node with marks
+            const newTextNode = {
+              type: 'text',
+              value: content,
+              data: {
+                adfMetadata: [{
+                  nodeType: nodeType,
+                  attrs: attrs,
+                  raw: `${openingComment.value}${content}${closingComment.value}`,
+                  marks: marks
+                }]
+              }
+            };
+            
+            // Replace the three nodes with the new one
+            paragraph.children.splice(i, 3, newTextNode);
+            
+            // Adjust loop since we removed 2 nodes
+            i--;
+          }
+        }
+      }
+    }
+  });
+  
+  return processedTree;
+}
+
+/**
  * Process metadata comments in an mdast tree
  * Associates comments with target nodes and removes the comment nodes
  */
 export function processMetadataComments(tree: Root): Root {
-  const processedTree = JSON.parse(JSON.stringify(tree)) as Root;
+  let processedTree = JSON.parse(JSON.stringify(tree)) as Root;
+  
+  // First process span-style comments
+  processedTree = processSpanMetadataComments(processedTree);
+  
   const toRemove: { parent: Parent; index: number }[] = [];
 
   visit(processedTree, (node, index, parent) => {

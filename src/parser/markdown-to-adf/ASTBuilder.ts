@@ -1280,6 +1280,20 @@ export class ASTBuilder {
         // Skip frontmatter nodes - they're handled separately
         return null;
       case 'text':
+        // Check if this text node has metadata with marks (from span-style comments)
+        if (node.data?.adfMetadata && Array.isArray(node.data.adfMetadata)) {
+          const metadata = node.data.adfMetadata[0];
+          if (metadata && metadata.marks && Array.isArray(metadata.marks)) {
+            // Create text node with the marks from metadata
+            adfNode = {
+              type: 'text',
+              text: node.value,
+              marks: metadata.marks
+            };
+            break;
+          }
+        }
+        
         // Process text node for social elements and special syntax
         // Note: This returns an array, but we need to handle it in the calling function
         const processedNodes = this.processTextNodeForSocialElements(node.value);
@@ -1344,6 +1358,7 @@ export class ASTBuilder {
   private convertAdfFenceNode(node: AdfFenceNode): ADFNode {
     const { nodeType, attributes, value } = node;
     
+    
     // Parse the content - prioritize children over value
     let content: ADFNode[] = [];
     
@@ -1403,28 +1418,47 @@ export class ASTBuilder {
         };
       
       case 'mediaGroup':
-        const groupMediaNodes = this.extractMediaFromContent(value);
+        // Use the same logic as the direct tokenizer path to create mediaReference nodes
+        let groupMediaNodes: ADFNode[] = [];
         
-        // If extractMediaFromContent didn't find anything, extract from processed content
-        let finalMediaNodes = groupMediaNodes;
-        if (finalMediaNodes.length === 0 && content.length > 0) {
-          finalMediaNodes = [];
+        if (value && value.trim()) {
+          // Extract media references using regex pattern (same as convertMediaGroup)
+          const mediaRegex = /!\[([^\]]*)\]\(media:([^)]+)\)/g;
+          let match;
+          
+          while ((match = mediaRegex.exec(value)) !== null) {
+            const [, alt, id] = match;
+            
+            groupMediaNodes.push({
+              type: 'mediaReference',
+              attrs: {
+                id,
+                alt: alt || '',
+                mediaType: 'file',
+                collection: ''
+              }
+            });
+          }
+        }
+        
+        // If regex didn't find anything, extract from processed content
+        if (groupMediaNodes.length === 0 && content.length > 0) {
           // Extract media references from all content nodes
           for (const node of content) {
             if (node.type === 'paragraph' && node.content) {
               const mediaRefs = node.content.filter((child: ADFNode) => 
                 child.type === 'mediaReference' || child.type === 'media'
               );
-              finalMediaNodes.push(...mediaRefs);
+              groupMediaNodes.push(...mediaRefs);
             } else if (node.type === 'mediaReference' || node.type === 'media') {
-              finalMediaNodes.push(node);
+              groupMediaNodes.push(node);
             }
           }
         }
         
         return {
           type: 'mediaGroup',
-          content: finalMediaNodes.length > 0 ? finalMediaNodes : content
+          content: groupMediaNodes.length > 0 ? groupMediaNodes : content
         };
       
       default:
