@@ -778,7 +778,16 @@ Expand content
       checklist.panelsAllTypes = adf.content.some(n => 
         n.type === 'panel' && n.attrs?.panelType === 'info'
       );
-      checklist.expandBlocks = adf.content.some(n => n.type === 'expand');
+      // Helper to recursively search for expand nodes in ADF structure
+      const findExpandNodes = (node: any): boolean => {
+        if (node.type === 'expand') return true;
+        if (node.content && Array.isArray(node.content)) {
+          return node.content.some((child: any) => findExpandNodes(child));
+        }
+        return false;
+      };
+      
+      checklist.expandBlocks = adf.content.some(findExpandNodes);
       checklist.blockquotesNested = adf.content.some(n => n.type === 'blockquote');
       
       // Media and Advanced Features
