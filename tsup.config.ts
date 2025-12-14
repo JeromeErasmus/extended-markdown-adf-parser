@@ -14,10 +14,12 @@ export default defineConfig([
     splitting: false, // CJS doesn't support splitting
     minify: false, // Keep readable for debugging
     outDir: 'dist',
-    outExtension: () => ({ js: '.js', dts: '.d.ts' }),
+    outExtension: () => ({ js: '.cjs', dts: '.d.cts' }),
     target: 'es2020',
-    external: [
+    // Bundle ESM dependencies for CommonJS compatibility
+    noExternal: [
       'unified',
+      'remark',
       'remark-parse',
       'remark-stringify', 
       'remark-gfm',
@@ -70,10 +72,12 @@ export default defineConfig([
     splitting: false, // Keep modules separate
     minify: false,
     outDir: 'dist',
-    outExtension: () => ({ js: '.js', dts: '.d.ts' }),
+    outExtension: () => ({ js: '.cjs', dts: '.d.cts' }),
     target: 'es2020',
-    external: [
+    // Bundle ESM dependencies for CommonJS compatibility
+    noExternal: [
       'unified',
+      'remark',
       'remark-parse',
       'remark-stringify', 
       'remark-gfm',
