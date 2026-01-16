@@ -570,7 +570,18 @@ export class ASTBuilder {
       // Apply the mark to all child text nodes
       return childNodes.map(node => {
         if (node.type === 'text') {
-          const marks = node.marks ? [...node.marks] : [];
+          let marks = node.marks ? [...node.marks] : [];
+          
+          // Issue #5: If code mark is being added, remove all other marks
+          // as it's invalid in ADF to combine code with other marks
+          if (markType === 'code') {
+            marks = [];
+          } 
+          // If code mark already exists, don't add any other marks
+          else if (marks.some(m => m.type === 'code')) {
+            return { ...node, marks };
+          }
+          
           marks.push({ type: markType });
           return {
             ...node,
@@ -625,7 +636,14 @@ export class ASTBuilder {
       // Apply the link mark to all child text nodes
       return childNodes.map(node => {
         if (node.type === 'text') {
-          const marks = node.marks ? [...node.marks] : [];
+          let marks = node.marks ? [...node.marks] : [];
+          
+          // Issue #5: Don't add link mark if code mark exists
+          // as it's invalid in ADF to combine code with other marks
+          if (marks.some(m => m.type === 'code')) {
+            return { ...node, marks };
+          }
+          
           marks.push({ type: 'link', attrs: linkAttrs });
           return {
             ...node,
@@ -1966,7 +1984,18 @@ export class ASTBuilder {
     
     return childNodes.map(node => {
       if (markableNodeTypes.includes(node.type)) {
-        const marks = node.marks ? [...node.marks] : [];
+        let marks = node.marks ? [...node.marks] : [];
+        
+        // Issue #5: If code mark is being added, remove all other marks
+        // as it's invalid in ADF to combine code with other marks
+        if (markType === 'code') {
+          marks = [];
+        } 
+        // If code mark already exists, don't add any other marks
+        else if (marks.some(m => m.type === 'code')) {
+          return { ...node, marks };
+        }
+        
         marks.push(mark);
         return {
           ...node,
