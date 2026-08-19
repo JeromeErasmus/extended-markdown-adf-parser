@@ -193,3 +193,10 @@ export interface SubSupMark extends ADFMark {
     type: 'sub' | 'sup';
   };
 }
+
+export interface FontSizeMark extends ADFMark {
+  type: 'fontSize';
+  attrs: {
+    fontSize: string;
+  };
+}
