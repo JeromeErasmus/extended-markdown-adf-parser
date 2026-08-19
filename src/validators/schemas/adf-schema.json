@@ -36,7 +36,7 @@
             "paragraph", "heading", "blockquote", "bulletList", "orderedList", "listItem",
             "codeBlock", "panel", "expand", "table", "tableRow", "tableHeader", "tableCell",
             "mediaSingle", "mediaGroup", "media", "rule", "text", "hardBreak",
-            "mention", "emoji", "status", "date", "inlineCard"
+            "mention", "emoji", "status", "date", "inlineCard", "blockCard"
           ]
         },
         "attrs": {

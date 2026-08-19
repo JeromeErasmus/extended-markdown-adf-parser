@@ -129,7 +129,8 @@ describe('AdfValidator', () => {
         { type: 'media', attrs: { id: '123', type: 'file' } },
         { type: 'blockquote', content: [] },
         { type: 'rule' },
-        { type: 'hardBreak' }
+        { type: 'hardBreak' },
+        { type: 'blockCard', attrs: { url: 'https://example.com/doc' } }
       ];
 
       validNodes.forEach(node => {
@@ -159,6 +160,31 @@ describe('AdfValidator', () => {
           message: expect.stringContaining('must have required property \'type\'')
         })
       );
+    });
+
+    it('should validate blockCard node (regression for #13)', () => {
+      // blockCard is a standard ADF node (Jira's "smart link" card rendered as
+      // its own block) and is already handled as a first-class type by the
+      // markdown conversion code, but was missing from the validation schema's
+      // node type enum - real Jira Cloud content using it failed validateAdf().
+      const adf: ADFDocument = {
+        version: 1,
+        type: 'doc',
+        content: [
+          { type: 'paragraph', content: [{ type: 'text', text: 'See design doc:' }] },
+          {
+            type: 'blockCard',
+            attrs: {
+              url: 'https://docs.google.com/document/d/example-design-doc-id/edit',
+              localId: '0b3f7408bc17'
+            }
+          }
+        ]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toEqual([]);
     });
   });
 
