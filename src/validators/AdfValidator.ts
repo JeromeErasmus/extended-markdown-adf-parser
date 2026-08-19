@@ -176,7 +176,7 @@ export class AdfValidator {
       // Validate link mark
       if (mark.type === 'link') {
         const href = mark.attrs?.href;
-        if (!href || typeof href !== 'string') {
+        if (typeof href !== 'string') {
           errors.push({
             message: 'Link mark must have href attribute with URL',
             code: 'INVALID_LINK_HREF',

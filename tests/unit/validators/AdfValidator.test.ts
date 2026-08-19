@@ -454,6 +454,36 @@ describe('AdfValidator', () => {
       expect(result.valid).toBe(true);
     });
 
+    it('should validate link mark with an empty-string href', () => {
+      // Regression test for https://github.com/JeromeErasmus/extended-markdown-adf-parser/issues/11
+      // Real Jira Cloud content sometimes has a `link` mark whose href is an
+      // empty string - e.g. an autolinked email address or bookmark reference
+      // whose target got stripped somewhere upstream, but the mark stuck
+      // around. Jira stores and renders this fine. The schema already allows
+      // any string for href, but AdfValidator's own supplementary check was
+      // treating an empty string as "missing" (`!href`) and rejecting it
+      // independently of the schema.
+      const adf: ADFDocument = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            text: 'user@example.com',
+            marks: [{
+              type: 'link',
+              attrs: { href: '' }
+            }]
+          }]
+        }]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
+
     it('should reject link mark without href', () => {
       const adf = {
         version: 1,
