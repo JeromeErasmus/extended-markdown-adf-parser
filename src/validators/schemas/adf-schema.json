@@ -157,7 +157,7 @@
                 "type": "object",
                 "required": ["href"],
                 "properties": {
-                  "href": { "type": "string", "format": "uri" },
+                  "href": { "type": "string", "format": "uri-reference" },
                   "title": { "type": "string" }
                 }
               }

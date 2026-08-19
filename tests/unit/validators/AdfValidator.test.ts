@@ -401,6 +401,32 @@ describe('AdfValidator', () => {
       expect(result.valid).toBe(true);
     });
 
+    it('should validate link mark with a non-URI href (e.g. an internal app reference)', () => {
+      // Regression test for https://github.com/JeromeErasmus/extended-markdown-adf-parser/issues/11
+      // Jira Cloud accepts and renders `link` marks whose `href` is not a full URI -
+      // e.g. bare tokens produced by third-party apps/automations. The schema was
+      // previously using format: "uri", which rejects these even though Jira itself
+      // does not enforce it.
+      const adf: ADFDocument = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            text: 'DwrItemPosting',
+            marks: [{
+              type: 'link',
+              attrs: { href: 'Entity.DwrItemPostingId' }
+            }]
+          }]
+        }]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(true);
+    });
+
     it('should reject link mark without href', () => {
       const adf = {
         version: 1,
