@@ -427,6 +427,33 @@ describe('AdfValidator', () => {
       expect(result.valid).toBe(true);
     });
 
+    it('should validate link mark whose href contains URI template placeholders', () => {
+      // Regression test for https://github.com/JeromeErasmus/extended-markdown-adf-parser/issues/11
+      // format: "uri-reference" (the fix for the case above) is still RFC 3986
+      // well-formedness checking, so it rejects real Jira Cloud content like API
+      // documentation links containing unencoded template placeholders (e.g. "{id}").
+      // Jira does not validate href against any URI grammar - it stores and renders
+      // whatever string was entered - so the schema should not either.
+      const adf: ADFDocument = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            text: 'http://api.example.com/v3/item_postings/{id}',
+            marks: [{
+              type: 'link',
+              attrs: { href: 'http://api.example.com/v3/item_postings/{id}' }
+            }]
+          }]
+        }]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(true);
+    });
+
     it('should reject link mark without href', () => {
       const adf = {
         version: 1,
