@@ -167,21 +167,6 @@
           "text": "bold italic underlined colored code",
           "marks": [
             {
-              "type": "strong"
-            },
-            {
-              "type": "em"
-            },
-            {
-              "type": "underline"
-            },
-            {
-              "type": "textColor",
-              "attrs": {
-                "color": "#0066CC"
-              }
-            },
-            {
               "type": "code"
             }
           ]

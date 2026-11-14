@@ -43,15 +43,15 @@ describe('ASTBuilder Block Content Parsing', () => {
       const firstDataRow = table.content[1];
       expect(firstDataRow.type).toBe('tableRow');
       
-      // Check Owner cell (index 1) contains mention
+      // Check Owner cell (index 1) contains mention - cell content is wrapped in paragraph per ADF spec
       const ownerCell = firstDataRow.content[1];
-      const mentionNode = ownerCell.content.find((node: any) => node.type === 'mention');
+      const mentionNode = ownerCell.content[0].content.find((node: any) => node.type === 'mention');
       expect(mentionNode).toBeDefined();
       expect(mentionNode.attrs.id).toBe('builder');
-      
+
       // Check Status cell (index 2) contains status
       const statusCell = firstDataRow.content[2];
-      const statusNode = statusCell.content.find((node: any) => node.type === 'status');
+      const statusNode = statusCell.content[0].content.find((node: any) => node.type === 'status');
       expect(statusNode).toBeDefined();
       expect(statusNode.attrs.text).toBe('active');
     });
@@ -89,9 +89,10 @@ Pipeline runs daily at midnight.
       const statusCell = firstDataRow.content[3]; 
       const dateCell = firstDataRow.content[4];
       
-      expect(mentionCell.content.some((n: any) => n.type === 'mention')).toBeTruthy();
-      expect(statusCell.content.some((n: any) => n.type === 'status')).toBeTruthy();
-      expect(dateCell.content.some((n: any) => n.type === 'date')).toBeTruthy();
+      // Cell content is wrapped in paragraph per ADF spec
+      expect(mentionCell.content[0].content.some((n: any) => n.type === 'mention')).toBeTruthy();
+      expect(statusCell.content[0].content.some((n: any) => n.type === 'status')).toBeTruthy();
+      expect(dateCell.content[0].content.some((n: any) => n.type === 'date')).toBeTruthy();
     });
   });
 

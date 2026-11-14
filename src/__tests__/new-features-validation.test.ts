@@ -270,20 +270,22 @@ describe('NEW FEATURES - Previously non-working elements', () => {
       const dataRow1 = result.content[0].content[1];
       const dataRow2 = result.content[0].content[2];
       
-      // First data row - user mention (directly in table cell)
-      expect(dataRow1.content[0].content[0].type).toBe('mention');
-      expect(dataRow1.content[0].content[0].attrs.id).toBe('alice');
-      
-      // First data row - status (directly in table cell)
-      expect(dataRow1.content[1].content[0].type).toBe('status');
-      expect(dataRow1.content[1].content[0].attrs.text).toBe('Active');
-      
-      // First data row - emoji (table cell contains text + emoji)
-      const notesCell = dataRow1.content[2].content;
+      // First data row - user mention (cell content wrapped in paragraph per ADF spec)
+      expect(dataRow1.content[0].content[0].type).toBe('paragraph');
+      expect(dataRow1.content[0].content[0].content[0].type).toBe('mention');
+      expect(dataRow1.content[0].content[0].content[0].attrs.id).toBe('alice');
+
+      // First data row - status (cell content wrapped in paragraph per ADF spec)
+      expect(dataRow1.content[1].content[0].type).toBe('paragraph');
+      expect(dataRow1.content[1].content[0].content[0].type).toBe('status');
+      expect(dataRow1.content[1].content[0].content[0].attrs.text).toBe('Active');
+
+      // First data row - emoji (table cell contains text + emoji, wrapped in paragraph)
+      const notesCell = dataRow1.content[2].content[0].content;
       expect(notesCell.some((node: any) => node.type === 'emoji')).toBeTruthy();
-      
-      // Second data row - date (table cell contains text + date)
-      const notesCell2 = dataRow2.content[2].content;
+
+      // Second data row - date (table cell contains text + date, wrapped in paragraph)
+      const notesCell2 = dataRow2.content[2].content[0].content;
       expect(notesCell2.some((node: any) => node.type === 'date')).toBeTruthy();
     });
 

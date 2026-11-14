@@ -171,13 +171,15 @@ describe('Working Elements Validation Tests', () => {
       const headerRow = table.content[0];
       expect(headerRow.type).toBe('tableRow');
       expect(headerRow.content[0].type).toBe('tableHeader');
-      expect(headerRow.content[0].content[0].text).toBe('Header 1');
-      
+      expect(headerRow.content[0].content[0].type).toBe('paragraph');
+      expect(headerRow.content[0].content[0].content[0].text).toBe('Header 1');
+
       // Check data rows
       const dataRow = table.content[1];
       expect(dataRow.type).toBe('tableRow');
       expect(dataRow.content[0].type).toBe('tableCell');
-      expect(dataRow.content[0].content[0].text).toBe('Data 1');
+      expect(dataRow.content[0].content[0].type).toBe('paragraph');
+      expect(dataRow.content[0].content[0].content[0].text).toBe('Data 1');
     });
   });
 

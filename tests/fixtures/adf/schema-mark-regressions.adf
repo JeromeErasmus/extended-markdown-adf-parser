@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "type": "doc",
+  "content": [
+    {
+      "type": "heading",
+      "attrs": {
+        "level": 2
+      },
+      "content": [
+        {
+          "type": "text",
+          "text": "Schema Regression Coverage"
+        }
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "Small text",
+          "marks": [
+            {
+              "type": "fontSize",
+              "attrs": {
+                "fontSize": "small"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "mediaSingle",
+      "attrs": {
+        "layout": "center"
+      },
+      "content": [
+        {
+          "type": "media",
+          "attrs": {
+            "id": "f2cf579e-2f68-43d2-9ad3-956028d437e1",
+            "type": "file",
+            "collection": ""
+          },
+          "marks": [
+            {
+              "type": "border",
+              "attrs": {
+                "size": 2,
+                "color": "#091e4224"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "blockCard",
+      "attrs": {
+        "url": "https://example.com/doc"
+      }
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        {
+          "type": "text",
+          "text": "Empty href link",
+          "marks": [
+            {
+              "type": "link",
+              "attrs": {
+                "href": ""
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

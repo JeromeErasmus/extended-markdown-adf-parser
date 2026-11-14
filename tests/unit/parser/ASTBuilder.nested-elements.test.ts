@@ -43,10 +43,10 @@ describe('ASTBuilder Nested Elements Parsing', () => {
       const firstRowSecondCell = dataRow1?.content?.[1];
       expect(firstRowSecondCell?.type).toBe('tableCell');
       
-      // This should contain a mention node, but currently fails due to convertInlineContent issue
-      const cellContent = firstRowSecondCell?.content || [];
+      // Cell content is wrapped in a paragraph node per ADF spec
+      const cellContent = firstRowSecondCell?.content?.[0]?.content || [];
       const mentionNode = cellContent.find((node: any) => node.type === 'mention');
-      
+
       // FAILING TEST - demonstrates the bug
       if (mentionNode) {
         expect(mentionNode.attrs?.id).toBe('project.lead');
@@ -72,9 +72,10 @@ describe('ASTBuilder Nested Elements Parsing', () => {
       const dataRow1 = table.content?.[1];
       const statusCell = dataRow1?.content?.[1];
       
-      const cellContent = statusCell?.content || [];
+      // Cell content is wrapped in a paragraph node per ADF spec
+      const cellContent = statusCell?.content?.[0]?.content || [];
       const emojiNode = cellContent.find((node: any) => node.type === 'emoji');
-      
+
       // FAILING TEST - demonstrates the bug
       if (emojiNode) {
         expect(emojiNode.attrs?.shortName).toBe(':white_check_mark:');
@@ -98,9 +99,10 @@ describe('ASTBuilder Nested Elements Parsing', () => {
       const dataRow1 = table.content?.[1];
       const statusCell = dataRow1?.content?.[1];
       
-      const cellContent = statusCell?.content || [];
+      // Cell content is wrapped in a paragraph node per ADF spec
+      const cellContent = statusCell?.content?.[0]?.content || [];
       const statusNode = cellContent.find((node: any) => node.type === 'status');
-      
+
       // FAILING TEST - demonstrates the bug
       if (statusNode) {
         expect(statusNode.attrs?.text).toBe('active');
@@ -125,9 +127,10 @@ describe('ASTBuilder Nested Elements Parsing', () => {
       const dataRow1 = table.content?.[1];
       const dateCell = dataRow1?.content?.[1];
       
-      const cellContent = dateCell?.content || [];
+      // Cell content is wrapped in a paragraph node per ADF spec
+      const cellContent = dateCell?.content?.[0]?.content || [];
       const dateNode = cellContent.find((node: any) => node.type === 'date');
-      
+
       // FAILING TEST - demonstrates the bug
       if (dateNode) {
         // Date should be converted to Unix timestamp
@@ -151,13 +154,13 @@ describe('ASTBuilder Nested Elements Parsing', () => {
       const table = adf.content[0];
       const dataRow = table.content?.[1];
       
-      // Check owner cell
+      // Check owner cell - content is wrapped in a paragraph node per ADF spec
       const ownerCell = dataRow?.content?.[1];
-      const ownerContent = ownerCell?.content || [];
-      
+      const ownerContent = ownerCell?.content?.[0]?.content || [];
+
       const mentionNode = ownerContent.find((node: any) => node.type === 'mention');
       const emojiNode = ownerContent.find((node: any) => node.type === 'emoji');
-      
+
       // These tests may fail due to the convertInlineContent issue
       if (!mentionNode || !emojiNode) {
         console.warn('KNOWN ISSUE: Mixed social elements in table cells not parsing correctly');
@@ -269,21 +272,22 @@ describe('ASTBuilder Nested Elements Parsing', () => {
         const contactCell = dataRow1?.content?.[3];
         
         // Check for social elements in table cells within expand
-        const personContent = personCell?.content || [];
-        const statusContent = statusCell?.content || [];
-        const contactContent = contactCell?.content || [];
-        
+        // Cell content is wrapped in a paragraph node per ADF spec
+        const personContent = personCell?.content?.[0]?.content || [];
+        const statusContent = statusCell?.content?.[0]?.content || [];
+        const contactContent = contactCell?.content?.[0]?.content || [];
+
         const mentionNode = personContent.find((node: any) => node.type === 'mention');
         const emojiNode = personContent.find((node: any) => node.type === 'emoji');
         const statusNode = statusContent.find((node: any) => node.type === 'status');
         const dateNode = contactContent.find((node: any) => node.type === 'date');
-        
+
         // CRITICAL FAILING TEST - this is the exact scenario the user reported
         if (!mentionNode || !emojiNode || !statusNode || !dateNode) {
           console.error('CRITICAL ISSUE: Social elements in tables within expand blocks not parsing correctly');
           console.error('This matches the user-reported issue where @build.engineer appears as plain text');
         }
-        
+
         // Fallback checks to document current broken behavior
         if (!mentionNode) {
           const textNode = personContent.find((node: any) => node.type === 'text');
@@ -306,7 +310,8 @@ describe('ASTBuilder Nested Elements Parsing', () => {
       const membersCell = dataRow1?.content?.[1];
       
       // FAILING TEST - complex nested parsing
-      const cellContent = membersCell?.content || [];
+      // Cell content is wrapped in a paragraph node per ADF spec
+      const cellContent = membersCell?.content?.[0]?.content || [];
       console.warn('Complex nested elements in table cells may not parse correctly');
     });
   });
@@ -395,13 +400,14 @@ Due date: {date:2024-07-15}
       const ownerCell = dataRow?.content?.[0];
       const statusCell = dataRow?.content?.[1];
       
-      const ownerContent = ownerCell?.content || [];
-      const statusContent = statusCell?.content || [];
-      
+      // Cell content is wrapped in a paragraph node per ADF spec
+      const ownerContent = ownerCell?.content?.[0]?.content || [];
+      const statusContent = statusCell?.content?.[0]?.content || [];
+
       const mentionNode = ownerContent.find((node: any) => node.type === 'mention');
       const statusNode = statusContent.find((node: any) => node.type === 'status');
       const emojiNode = statusContent.find((node: any) => node.type === 'emoji');
-      
+
       // After fix, these should all pass
       expect(mentionNode?.attrs?.id).toBe('owner.name');
       expect(statusNode?.attrs?.text).toBe('active');
@@ -453,14 +459,15 @@ Due date: {date:2024-07-15}
       const statusCell = dataRow?.content?.[3];
       const dateCell = dataRow?.content?.[4];
       
-      const ownerContent = ownerCell?.content || [];
-      const statusContent = statusCell?.content || [];
-      const dateContent = dateCell?.content || [];
-      
+      // Cell content is wrapped in a paragraph node per ADF spec
+      const ownerContent = ownerCell?.content?.[0]?.content || [];
+      const statusContent = statusCell?.content?.[0]?.content || [];
+      const dateContent = dateCell?.content?.[0]?.content || [];
+
       const mentionNode = ownerContent.find((node: any) => node.type === 'mention');
       const statusNode = statusContent.find((node: any) => node.type === 'status');
       const dateNode = dateContent.find((node: any) => node.type === 'date');
-      
+
       // After fix, these should work - resolving the user's exact issue
       expect(mentionNode?.attrs?.id).toBe('build.engineer');
       expect(mentionNode?.attrs?.text).toBe('@build.engineer');
