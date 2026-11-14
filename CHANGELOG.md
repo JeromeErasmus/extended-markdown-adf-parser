@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-11-14
+
+### Added
+- **Checkbox Task Lists**: Bidirectional support for Markdown checkbox syntax (`- [x]`/`- [ ]`) converting to/from ADF `taskList`/`taskItem` nodes (#8)
+
+### Fixed
+- **Checkbox Task Lists**: A list was treated as a checkbox list if *any* item had a checkbox, fabricating `taskItem`/TODO state on plain bullets mixed into the same list; now requires *every* item to be checked
+- **Checkbox Task Lists**: Checkbox state was silently lost when a checkbox item had complex content (nested list, multiple paragraphs) and the list fell back to a plain `bulletList`; state is now preserved as visible `[x]`/`[ ]` text
+- **Table Cells**: Table cell content wasn't wrapped in a `paragraph` node per the ADF spec, causing Jira to reject conversions with `INVALID_INPUT` (#7)
+- **Table Cells**: Whitespace-only cells (e.g. NBSP from pasted content) had their paragraph wrapper stripped again by an unrelated cleanup pass, reopening the above issue
+- **Code Mark Exclusivity**: `code` combined with other marks (`strong`, `em`, `link`) inside table cells produced invalid ADF; the exclusivity check is now applied consistently across all conversion paths (#5)
+- **Link Validation**: `href` validation was stricter than what Jira actually accepts, rejecting valid non-URL href values (#11)
+- **Link Conversion**: An empty-string `href` (now valid per the above fix) was silently dropped instead of round-tripping as a link
+- **Schema Validation**: `fontSize` mark, `border` mark, and `blockCard` node were missing from the ADF schema's allowed enums, causing `validateAdf()` to reject valid Jira Cloud content (#17, #15, #13)
+
 ## [2.3.3] - 2024-12-14
 
 ### Fixed
