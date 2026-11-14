@@ -197,6 +197,27 @@ export class AdfValidator {
         }
       }
 
+      // Validate border mark (applied to media/mediaSingle nodes)
+      if (mark.type === 'border') {
+        const color = mark.attrs?.color;
+        if (!color || typeof color !== 'string' || !/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/.test(color)) {
+          errors.push({
+            message: 'Border mark must have valid hex color (e.g., #091E4224)',
+            code: 'INVALID_BORDER_COLOR',
+            path: markPath
+          });
+        }
+
+        const size = mark.attrs?.size;
+        if (typeof size !== 'number' || size < 0 || size > 3) {
+          errors.push({
+            message: 'Border mark must have a size attribute between 0 and 3',
+            code: 'INVALID_BORDER_SIZE',
+            path: markPath
+          });
+        }
+      }
+
       // Validate font size mark (Jira/Confluence's block-level font size control)
       if (mark.type === 'fontSize') {
         const fontSize = mark.attrs?.fontSize;

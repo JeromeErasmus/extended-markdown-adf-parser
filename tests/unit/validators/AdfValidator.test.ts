@@ -502,6 +502,88 @@ describe('AdfValidator', () => {
       });
     });
 
+    // border is a standard ADF mark applied to media/mediaSingle nodes -
+    // it's what Jira attaches to a pasted image rendered with a border/frame.
+    // It was missing from the mark type enum, so real Jira Cloud content
+    // using it failed validateAdf() (regression for #15).
+    it('should validate border mark on media node', () => {
+      const adf: ADFDocument = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'mediaSingle',
+          attrs: { layout: 'center' },
+          content: [{
+            type: 'media',
+            attrs: { type: 'file', id: 'f2cf579e-2f68-43d2-9ad3-956028d437e1', collection: '' },
+            marks: [{
+              type: 'border',
+              attrs: { size: 2, color: '#091e4224' }
+            }]
+          }]
+        }]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('should reject border mark with invalid color', () => {
+      const adf = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'mediaSingle',
+          content: [{
+            type: 'media',
+            attrs: { type: 'file', id: '123', collection: '' },
+            marks: [{
+              type: 'border',
+              attrs: { size: 2, color: 'not-a-color' }
+            }]
+          }]
+        }]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({
+          code: 'SCHEMA_VALIDATION_ERROR',
+          message: expect.stringContaining('must match pattern')
+        })
+      );
+    });
+
+    it('should reject border mark without attrs', () => {
+      const adf = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'mediaSingle',
+          content: [{
+            type: 'media',
+            attrs: { type: 'file', id: '123', collection: '' },
+            marks: [{ type: 'border' }]
+          }]
+        }]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({
+          code: 'INVALID_BORDER_COLOR'
+        })
+      );
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({
+          code: 'INVALID_BORDER_SIZE'
+        })
+      );
+    });
+
     // fontSize is Jira/Confluence's block-level font size control (e.g. the
     // editor's "small text" option applied to a paragraph). It was missing
     // from the mark type enum, so real Jira Cloud content using it failed

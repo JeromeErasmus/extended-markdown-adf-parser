@@ -194,6 +194,14 @@ export interface SubSupMark extends ADFMark {
   };
 }
 
+export interface BorderMark extends ADFMark {
+  type: 'border';
+  attrs: {
+    size: number;
+    color: string;
+  };
+}
+
 export interface FontSizeMark extends ADFMark {
   type: 'fontSize';
   attrs: {

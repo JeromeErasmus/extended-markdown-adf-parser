@@ -140,7 +140,7 @@
           "type": "string",
           "enum": [
             "strong", "em", "code", "link", "strike", "underline",
-            "textColor", "backgroundColor", "subsup", "fontSize"
+            "textColor", "backgroundColor", "subsup", "fontSize", "border"
           ]
         },
         "attrs": {
@@ -173,6 +173,21 @@
                 "required": ["color"],
                 "properties": {
                   "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "border" } } },
+          "then": {
+            "properties": {
+              "attrs": {
+                "type": "object",
+                "required": ["size", "color"],
+                "properties": {
+                  "size": { "type": "number", "minimum": 0, "maximum": 3 },
+                  "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$" }
                 }
               }
             }
