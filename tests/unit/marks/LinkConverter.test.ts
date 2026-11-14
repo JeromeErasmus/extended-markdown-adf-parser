@@ -111,6 +111,22 @@ describe('LinkConverter', () => {
       expect(result).toBe('No Attrs Link');
     });
 
+    it('should preserve link for empty-string href rather than dropping it', () => {
+      // AdfValidator accepts href: '' as valid (Jira doesn't enforce URI
+      // grammar), so this must round-trip as a link, not silently fall
+      // back to plain text.
+      const mark: LinkMark = {
+        type: 'link',
+        attrs: {
+          href: ''
+        }
+      };
+      const text = 'Empty Href Link';
+
+      const result = converter.toMarkdown(text, mark, mockContext);
+      expect(result).toBe('[Empty Href Link]()');
+    });
+
     it('should include custom attributes in metadata', () => {
       const mark: LinkMark = {
         type: 'link',

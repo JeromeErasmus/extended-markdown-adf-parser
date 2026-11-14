@@ -36,7 +36,7 @@
             "paragraph", "heading", "blockquote", "bulletList", "orderedList", "listItem",
             "codeBlock", "panel", "expand", "table", "tableRow", "tableHeader", "tableCell",
             "mediaSingle", "mediaGroup", "media", "rule", "text", "hardBreak",
-            "mention", "emoji", "status", "date", "inlineCard"
+            "mention", "emoji", "status", "date", "inlineCard", "blockCard"
           ]
         },
         "attrs": {
@@ -139,8 +139,8 @@
         "type": {
           "type": "string",
           "enum": [
-            "strong", "em", "code", "link", "strike", "underline", 
-            "textColor", "backgroundColor", "subsup"
+            "strong", "em", "code", "link", "strike", "underline",
+            "textColor", "backgroundColor", "subsup", "fontSize", "border"
           ]
         },
         "attrs": {
@@ -157,7 +157,7 @@
                 "type": "object",
                 "required": ["href"],
                 "properties": {
-                  "href": { "type": "string", "format": "uri" },
+                  "href": { "type": "string" },
                   "title": { "type": "string" }
                 }
               }
@@ -173,6 +173,35 @@
                 "required": ["color"],
                 "properties": {
                   "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}$" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "border" } } },
+          "then": {
+            "properties": {
+              "attrs": {
+                "type": "object",
+                "required": ["size", "color"],
+                "properties": {
+                  "size": { "type": "number", "minimum": 0, "maximum": 3 },
+                  "color": { "type": "string", "pattern": "^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "fontSize" } } },
+          "then": {
+            "properties": {
+              "attrs": {
+                "type": "object",
+                "required": ["fontSize"],
+                "properties": {
+                  "fontSize": { "type": "string", "minLength": 1 }
                 }
               }
             }

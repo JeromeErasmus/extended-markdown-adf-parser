@@ -36,9 +36,11 @@ export class LinkConverter implements MarkConverter {
 
   toMarkdown(text: string, mark: any, context: ConversionContext): string {
     const linkMark = mark as LinkMark;
-    
-    if (!linkMark.attrs?.href) {
-      // Fallback for invalid link - just return text
+
+    if (typeof linkMark.attrs?.href !== 'string') {
+      // Fallback for invalid link (missing/non-string href) - just return text.
+      // An empty-string href is distinct: Jira accepts it (validator allows any
+      // string), so it must still round-trip as a link, not be dropped.
       return text;
     }
 

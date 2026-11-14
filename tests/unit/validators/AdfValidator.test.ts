@@ -129,7 +129,8 @@ describe('AdfValidator', () => {
         { type: 'media', attrs: { id: '123', type: 'file' } },
         { type: 'blockquote', content: [] },
         { type: 'rule' },
-        { type: 'hardBreak' }
+        { type: 'hardBreak' },
+        { type: 'blockCard', attrs: { url: 'https://example.com/doc' } }
       ];
 
       validNodes.forEach(node => {
@@ -159,6 +160,31 @@ describe('AdfValidator', () => {
           message: expect.stringContaining('must have required property \'type\'')
         })
       );
+    });
+
+    it('should validate blockCard node (regression for #13)', () => {
+      // blockCard is a standard ADF node (Jira's "smart link" card rendered as
+      // its own block) and is already handled as a first-class type by the
+      // markdown conversion code, but was missing from the validation schema's
+      // node type enum - real Jira Cloud content using it failed validateAdf().
+      const adf: ADFDocument = {
+        version: 1,
+        type: 'doc',
+        content: [
+          { type: 'paragraph', content: [{ type: 'text', text: 'See design doc:' }] },
+          {
+            type: 'blockCard',
+            attrs: {
+              url: 'https://docs.google.com/document/d/example-design-doc-id/edit',
+              localId: '0b3f7408bc17'
+            }
+          }
+        ]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toEqual([]);
     });
   });
 
@@ -401,6 +427,89 @@ describe('AdfValidator', () => {
       expect(result.valid).toBe(true);
     });
 
+    it('should validate link mark with a non-URI href (e.g. an internal app reference)', () => {
+      // Regression test for https://github.com/JeromeErasmus/extended-markdown-adf-parser/issues/11
+      // Jira Cloud accepts and renders `link` marks whose `href` is not a full URI -
+      // e.g. bare tokens produced by third-party apps/automations. The schema was
+      // previously using format: "uri", which rejects these even though Jira itself
+      // does not enforce it.
+      const adf: ADFDocument = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            text: 'DwrItemPosting',
+            marks: [{
+              type: 'link',
+              attrs: { href: 'Entity.DwrItemPostingId' }
+            }]
+          }]
+        }]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should validate link mark whose href contains URI template placeholders', () => {
+      // Regression test for https://github.com/JeromeErasmus/extended-markdown-adf-parser/issues/11
+      // format: "uri-reference" (the fix for the case above) is still RFC 3986
+      // well-formedness checking, so it rejects real Jira Cloud content like API
+      // documentation links containing unencoded template placeholders (e.g. "{id}").
+      // Jira does not validate href against any URI grammar - it stores and renders
+      // whatever string was entered - so the schema should not either.
+      const adf: ADFDocument = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            text: 'http://api.example.com/v3/item_postings/{id}',
+            marks: [{
+              type: 'link',
+              attrs: { href: 'http://api.example.com/v3/item_postings/{id}' }
+            }]
+          }]
+        }]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should validate link mark with an empty-string href', () => {
+      // Regression test for https://github.com/JeromeErasmus/extended-markdown-adf-parser/issues/11
+      // Real Jira Cloud content sometimes has a `link` mark whose href is an
+      // empty string - e.g. an autolinked email address or bookmark reference
+      // whose target got stripped somewhere upstream, but the mark stuck
+      // around. Jira stores and renders this fine. The schema already allows
+      // any string for href, but AdfValidator's own supplementary check was
+      // treating an empty string as "missing" (`!href`) and rejecting it
+      // independently of the schema.
+      const adf: ADFDocument = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            text: 'user@example.com',
+            marks: [{
+              type: 'link',
+              attrs: { href: '' }
+            }]
+          }]
+        }]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
+
     it('should reject link mark without href', () => {
       const adf = {
         version: 1,
@@ -474,6 +583,131 @@ describe('AdfValidator', () => {
           })
         );
       });
+    });
+
+    // border is a standard ADF mark applied to media/mediaSingle nodes -
+    // it's what Jira attaches to a pasted image rendered with a border/frame.
+    // It was missing from the mark type enum, so real Jira Cloud content
+    // using it failed validateAdf() (regression for #15).
+    it('should validate border mark on media node', () => {
+      const adf: ADFDocument = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'mediaSingle',
+          attrs: { layout: 'center' },
+          content: [{
+            type: 'media',
+            attrs: { type: 'file', id: 'f2cf579e-2f68-43d2-9ad3-956028d437e1', collection: '' },
+            marks: [{
+              type: 'border',
+              attrs: { size: 2, color: '#091e4224' }
+            }]
+          }]
+        }]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('should reject border mark with invalid color', () => {
+      const adf = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'mediaSingle',
+          content: [{
+            type: 'media',
+            attrs: { type: 'file', id: '123', collection: '' },
+            marks: [{
+              type: 'border',
+              attrs: { size: 2, color: 'not-a-color' }
+            }]
+          }]
+        }]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({
+          code: 'SCHEMA_VALIDATION_ERROR',
+          message: expect.stringContaining('must match pattern')
+        })
+      );
+    });
+
+    it('should reject border mark without attrs', () => {
+      const adf = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'mediaSingle',
+          content: [{
+            type: 'media',
+            attrs: { type: 'file', id: '123', collection: '' },
+            marks: [{ type: 'border' }]
+          }]
+        }]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({
+          code: 'INVALID_BORDER_COLOR'
+        })
+      );
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({
+          code: 'INVALID_BORDER_SIZE'
+        })
+      );
+    });
+
+    // fontSize is Jira/Confluence's block-level font size control (e.g. the
+    // editor's "small text" option applied to a paragraph). It was missing
+    // from the mark type enum, so real Jira Cloud content using it failed
+    // validateAdf() (regression for PSA-1884).
+    it('should validate fontSize mark on a paragraph node', () => {
+      const adf: ADFDocument = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Small text' }],
+          marks: [{
+            type: 'fontSize',
+            attrs: { fontSize: 'small' }
+          }]
+        } as any]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('should reject fontSize mark without a fontSize attribute', () => {
+      const adf = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Small text' }],
+          marks: [{ type: 'fontSize' }]
+        }]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({
+          code: 'INVALID_FONT_SIZE'
+        })
+      );
     });
   });
 
