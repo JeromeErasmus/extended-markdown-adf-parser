@@ -129,7 +129,8 @@ describe('AdfValidator', () => {
         { type: 'media', attrs: { id: '123', type: 'file' } },
         { type: 'blockquote', content: [] },
         { type: 'rule' },
-        { type: 'hardBreak' }
+        { type: 'hardBreak' },
+        { type: 'blockCard', attrs: { url: 'https://example.com/doc' } }
       ];
 
       validNodes.forEach(node => {
@@ -159,6 +160,31 @@ describe('AdfValidator', () => {
           message: expect.stringContaining('must have required property \'type\'')
         })
       );
+    });
+
+    it('should validate blockCard node (regression for #13)', () => {
+      // blockCard is a standard ADF node (Jira's "smart link" card rendered as
+      // its own block) and is already handled as a first-class type by the
+      // markdown conversion code, but was missing from the validation schema's
+      // node type enum - real Jira Cloud content using it failed validateAdf().
+      const adf: ADFDocument = {
+        version: 1,
+        type: 'doc',
+        content: [
+          { type: 'paragraph', content: [{ type: 'text', text: 'See design doc:' }] },
+          {
+            type: 'blockCard',
+            attrs: {
+              url: 'https://docs.google.com/document/d/example-design-doc-id/edit',
+              localId: '0b3f7408bc17'
+            }
+          }
+        ]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toEqual([]);
     });
   });
 
@@ -554,6 +580,49 @@ describe('AdfValidator', () => {
       expect(result.errors).toContainEqual(
         expect.objectContaining({
           code: 'INVALID_BORDER_SIZE'
+        })
+      );
+    });
+
+    // fontSize is Jira/Confluence's block-level font size control (e.g. the
+    // editor's "small text" option applied to a paragraph). It was missing
+    // from the mark type enum, so real Jira Cloud content using it failed
+    // validateAdf() (regression for PSA-1884).
+    it('should validate fontSize mark on a paragraph node', () => {
+      const adf: ADFDocument = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Small text' }],
+          marks: [{
+            type: 'fontSize',
+            attrs: { fontSize: 'small' }
+          }]
+        } as any]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('should reject fontSize mark without a fontSize attribute', () => {
+      const adf = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Small text' }],
+          marks: [{ type: 'fontSize' }]
+        }]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({
+          code: 'INVALID_FONT_SIZE'
         })
       );
     });

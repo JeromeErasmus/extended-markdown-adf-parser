@@ -217,6 +217,18 @@ export class AdfValidator {
           });
         }
       }
+
+      // Validate font size mark (Jira/Confluence's block-level font size control)
+      if (mark.type === 'fontSize') {
+        const fontSize = mark.attrs?.fontSize;
+        if (!fontSize || typeof fontSize !== 'string') {
+          errors.push({
+            message: 'FontSize mark must have a non-empty fontSize attribute',
+            code: 'INVALID_FONT_SIZE',
+            path: markPath
+          });
+        }
+      }
     });
   }
   

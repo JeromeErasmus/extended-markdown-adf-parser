@@ -201,3 +201,10 @@ export interface BorderMark extends ADFMark {
     color: string;
   };
 }
+
+export interface FontSizeMark extends ADFMark {
+  type: 'fontSize';
+  attrs: {
+    fontSize: string;
+  };
+}
