@@ -570,22 +570,10 @@ export class ASTBuilder {
       // Apply the mark to all child text nodes
       return childNodes.map(node => {
         if (node.type === 'text') {
-          let marks = node.marks ? [...node.marks] : [];
-          
-          // Issue #5: If code mark is being added, remove all other marks
-          // as it's invalid in ADF to combine code with other marks
-          if (markType === 'code') {
-            marks = [];
-          } 
-          // If code mark already exists, don't add any other marks
-          else if (marks.some(m => m.type === 'code')) {
-            return { ...node, marks };
-          }
-          
-          marks.push({ type: markType });
+          const marks = node.marks ? [...node.marks] : [];
           return {
             ...node,
-            marks
+            marks: this.addMarkWithCodeExclusivity(marks, { type: markType })
           };
         }
         return node;
@@ -600,6 +588,17 @@ export class ASTBuilder {
     }
   }
   
+  // ADF forbids combining `code` with any other mark (Issue #5).
+  private addMarkWithCodeExclusivity(marks: ADFMark[], mark: ADFMark): ADFMark[] {
+    if (mark.type === 'code') {
+      return [mark];
+    }
+    if (marks.some(m => m.type === 'code')) {
+      return marks;
+    }
+    return [...marks, mark];
+  }
+
   private getADFMarkType(tokenType: string): string {
     switch (tokenType) {
       case 'strong': return 'strong';
@@ -636,18 +635,10 @@ export class ASTBuilder {
       // Apply the link mark to all child text nodes
       return childNodes.map(node => {
         if (node.type === 'text') {
-          let marks = node.marks ? [...node.marks] : [];
-          
-          // Issue #5: Don't add link mark if code mark exists
-          // as it's invalid in ADF to combine code with other marks
-          if (marks.some(m => m.type === 'code')) {
-            return { ...node, marks };
-          }
-          
-          marks.push({ type: 'link', attrs: linkAttrs });
+          const marks = node.marks ? [...node.marks] : [];
           return {
             ...node,
-            marks
+            marks: this.addMarkWithCodeExclusivity(marks, { type: 'link', attrs: linkAttrs })
           };
         }
         return node;
@@ -1720,10 +1711,9 @@ export class ASTBuilder {
     // If content is text nodes, add strong marks
     const processedContent = content.map(child => {
       if (child.type === 'text') {
-        const marks = child.marks || [];
         return {
           ...child,
-          marks: [...marks, { type: 'strong' }]
+          marks: this.addMarkWithCodeExclusivity(child.marks || [], { type: 'strong' })
         };
       }
       return child;
@@ -1750,10 +1740,9 @@ export class ASTBuilder {
     // If content is text nodes, add em marks
     const processedContent = content.map(child => {
       if (child.type === 'text') {
-        const marks = child.marks || [];
         return {
           ...child,
-          marks: [...marks, { type: 'em' }]
+          marks: this.addMarkWithCodeExclusivity(child.marks || [], { type: 'em' })
         };
       }
       return child;
@@ -1791,10 +1780,9 @@ export class ASTBuilder {
     // If content is text nodes, add link marks
     const processedContent = content.map(child => {
       if (child.type === 'text') {
-        const marks = child.marks || [];
         return {
           ...child,
-          marks: [...marks, { type: 'link', attrs: { href: node.url } }]
+          marks: this.addMarkWithCodeExclusivity(child.marks || [], { type: 'link', attrs: { href: node.url } })
         };
       }
       return child;
@@ -1984,22 +1972,10 @@ export class ASTBuilder {
     
     return childNodes.map(node => {
       if (markableNodeTypes.includes(node.type)) {
-        let marks = node.marks ? [...node.marks] : [];
-        
-        // Issue #5: If code mark is being added, remove all other marks
-        // as it's invalid in ADF to combine code with other marks
-        if (markType === 'code') {
-          marks = [];
-        } 
-        // If code mark already exists, don't add any other marks
-        else if (marks.some(m => m.type === 'code')) {
-          return { ...node, marks };
-        }
-        
-        marks.push(mark);
+        const marks = node.marks ? [...node.marks] : [];
         return {
           ...node,
-          marks
+          marks: this.addMarkWithCodeExclusivity(marks, mark)
         };
       }
       return node;

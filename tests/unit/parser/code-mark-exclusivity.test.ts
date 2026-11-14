@@ -155,16 +155,38 @@ describe('Code Mark Exclusivity (Issue #5)', () => {
     it('should handle code at the end of italic text', () => {
       const markdown = '*italic and `code`*';
       const result = parser.markdownToAdf(markdown);
-      
+
       const content = result.content[0].content;
-      
+
       // First node should be italic
       expect(content[0].marks).toHaveLength(1);
       expect(content[0].marks[0].type).toBe('em');
-      
+
       // Second node should be code only
       expect(content[1].marks).toHaveLength(1);
       expect(content[1].marks[0].type).toBe('code');
+    });
+  });
+
+  describe('Table cell marks (mdast conversion path)', () => {
+    it('should only have code mark when bold wraps code in a table cell', () => {
+      const markdown = '| A |\n|---|\n| **`code`** |\n';
+      const result = parser.markdownToAdf(markdown);
+
+      const cell = result.content[0].content[1].content[0];
+      const textNode = cell.content[0];
+      expect(textNode.marks).toHaveLength(1);
+      expect(textNode.marks[0].type).toBe('code');
+    });
+
+    it('should only have code mark when a link wraps code in a table cell', () => {
+      const markdown = '| A |\n|---|\n| [`code`](https://example.com) |\n';
+      const result = parser.markdownToAdf(markdown);
+
+      const cell = result.content[0].content[1].content[0];
+      const textNode = cell.content[0];
+      expect(textNode.marks).toHaveLength(1);
+      expect(textNode.marks[0].type).toBe('code');
     });
   });
 });
