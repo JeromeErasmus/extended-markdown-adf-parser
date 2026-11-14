@@ -273,7 +273,7 @@ export class ASTBuilder {
     // checkbox item's state must still be visible, not silently dropped -
     // re-insert it as literal "[x] "/"[ ] " text on the rendered item.
     if (hasCheckbox && !isOrdered) {
-      node.content.forEach((listItemNode, index) => {
+      node.content?.forEach((listItemNode, index) => {
         if (isChecked(children[index])) {
           const prefix = (children[index] as ListItemToken).checked ? '[x] ' : '[ ] ';
           this.prependCheckboxPrefix(listItemNode, prefix);
@@ -1776,7 +1776,7 @@ export class ASTBuilder {
     // checkbox item's state must still be visible, not silently dropped -
     // re-insert it as literal "[x] "/"[ ] " text on the rendered item.
     if (hasCheckbox) {
-      listNode.content.forEach((listItemNode, index) => {
+      listNode.content?.forEach((listItemNode, index) => {
         if (isChecked(children[index])) {
           const prefix = children[index].checked ? '[x] ' : '[ ] ';
           this.prependCheckboxPrefix(listItemNode, prefix);
