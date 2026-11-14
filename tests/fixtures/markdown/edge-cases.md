@@ -35,3 +35,13 @@ Multiple empty lines above and below this paragraph.
 
 
 Final paragraph with trailing spaces and multiple breaks.
+
+## Checkbox Task List Edge Cases
+
+- [x] Done item
+- Regular item without checkbox
+- [ ] Todo item
+
+- [x] Parent task with nested content
+  - Nested bullet item
+- [ ] Simple sibling task

@@ -76,6 +76,18 @@ export interface ListItemNode extends ADFNode {
   content?: ADFNode[];
 }
 
+export interface TaskListNode extends ADFNode {
+  type: 'taskList';
+  attrs: { localId: string };
+  content: TaskItemNode[];
+}
+
+export interface TaskItemNode extends ADFNode {
+  type: 'taskItem';
+  attrs: { localId: string; state: 'TODO' | 'DONE' };
+  content?: ADFNode[];  // inline nodes directly, no paragraph wrapper
+}
+
 export interface MediaNode extends ADFNode {
   type: 'media';
   attrs: {

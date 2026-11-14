@@ -62,6 +62,11 @@ export interface ListToken extends Token {
   tight: boolean;
 }
 
+export interface ListItemToken extends Token {
+  type: 'listItem';
+  checked?: boolean; // true = [x], false = [ ], undefined = regular list item
+}
+
 export interface TableToken extends Token {
   type: 'table';
   columnAlignments: ('left' | 'center' | 'right' | null)[];

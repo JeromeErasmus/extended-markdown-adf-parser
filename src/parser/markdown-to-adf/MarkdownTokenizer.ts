@@ -4,7 +4,7 @@
  * @author Extended ADF Parser
  */
 
-import { Token, TokenType, Position, ParsingContext, TokenizeOptions, ListToken, TableToken, FenceToken, ADFMetadata } from './types.js';
+import { Token, TokenType, Position, ParsingContext, TokenizeOptions, ListToken, ListItemToken, TableToken, FenceToken, ADFMetadata } from './types.js';
 
 export class MarkdownTokenizer {
   private lines: string[] = [];
@@ -497,21 +497,30 @@ export class MarkdownTokenizer {
     // Get first line and extract content
     const firstLine = this.consumeLine();
     raw += firstLine + '\n';
-    
+
     const match = firstLine.match(/^\s*(?:[-*+]|\d+\.)\s+(.*)$/);
-    const content = match?.[1] || firstLine;
+    let content = match?.[1] || firstLine;
+
+    // Detect checkbox syntax: [x], [X], or [ ]
+    let checked: boolean | undefined;
+    const checkboxMatch = content.match(/^\[(x|X| )\]\s/);
+    if (checkboxMatch) {
+      checked = checkboxMatch[1] === 'x' || checkboxMatch[1] === 'X';
+      content = content.slice(checkboxMatch[0].length);
+    }
+
     lines.push(content);
 
     // Collect continuation lines
     while (this.currentLineIndex < this.lines.length) {
       const line = this.getCurrentLine();
-      
+
       // Stop if we hit another list item at same or lower level
       if (this.isList(line)) break;
-      
+
       // Stop if we hit a completely unindented line
       if (line.trim() && !line.startsWith('  ')) break;
-      
+
       // Include indented continuation
       if (line.startsWith('  ') || !line.trim()) {
         lines.push(line.slice(2)); // Remove 2-space indent
@@ -533,8 +542,9 @@ export class MarkdownTokenizer {
       content: lines.join('\n'),
       children,
       position: startPos,
-      raw: raw.trimEnd()
-    };
+      raw: raw.trimEnd(),
+      ...(checked !== undefined && { checked })
+    } as ListItemToken;
   }
 
   private parseBlockquote(): Token {

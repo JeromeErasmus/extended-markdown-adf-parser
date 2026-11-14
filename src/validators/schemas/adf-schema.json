@@ -34,6 +34,7 @@
           "type": "string",
           "enum": [
             "paragraph", "heading", "blockquote", "bulletList", "orderedList", "listItem",
+            "taskList", "taskItem",
             "codeBlock", "panel", "expand", "table", "tableRow", "tableHeader", "tableCell",
             "mediaSingle", "mediaGroup", "media", "rule", "text", "hardBreak",
             "mention", "emoji", "status", "date", "inlineCard", "blockCard"
@@ -124,6 +125,35 @@
                 "type": "object",
                 "properties": {
                   "order": { "type": "integer", "minimum": 1 }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "taskList" } } },
+          "then": {
+            "properties": {
+              "attrs": {
+                "type": "object",
+                "required": ["localId"],
+                "properties": {
+                  "localId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "taskItem" } } },
+          "then": {
+            "properties": {
+              "attrs": {
+                "type": "object",
+                "required": ["localId", "state"],
+                "properties": {
+                  "localId": { "type": "string" },
+                  "state": { "type": "string", "enum": ["TODO", "DONE"] }
                 }
               }
             }

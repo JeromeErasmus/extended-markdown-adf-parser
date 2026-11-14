@@ -17,6 +17,8 @@ import { CodeBlockConverter } from '../adf-to-markdown/nodes/CodeBlockConverter.
 import { BulletListConverter } from '../adf-to-markdown/nodes/BulletListConverter.js';
 import { OrderedListConverter } from '../adf-to-markdown/nodes/OrderedListConverter.js';
 import { ListItemConverter } from '../adf-to-markdown/nodes/ListItemConverter.js';
+import { TaskListConverter } from '../adf-to-markdown/nodes/TaskListConverter.js';
+import { TaskItemConverter } from '../adf-to-markdown/nodes/TaskItemConverter.js';
 import { MediaConverter } from '../adf-to-markdown/nodes/MediaConverter.js';
 import { MediaSingleConverter } from '../adf-to-markdown/nodes/MediaSingleConverter.js';
 import { TableConverter } from '../adf-to-markdown/nodes/TableConverter.js';
@@ -220,6 +222,8 @@ export class AdfToMarkdownEngine {
       new BulletListConverter(),
       new OrderedListConverter(),
       new ListItemConverter(),
+      new TaskListConverter(),
+      new TaskItemConverter(),
       new MediaConverter(),
       new MediaSingleConverter(),
       new TableConverter(),
