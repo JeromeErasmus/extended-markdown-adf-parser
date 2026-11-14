@@ -181,7 +181,7 @@ describe('Code Mark Exclusivity (Issue #5)', () => {
       const result = parser.markdownToAdf(markdown);
 
       const cell = result.content[0].content[1].content[0];
-      const textNode = cell.content[0];
+      const textNode = cell.content[0].content[0];
       expect(textNode.marks).toHaveLength(1);
       expect(textNode.marks[0].type).toBe('code');
     });
@@ -191,7 +191,7 @@ describe('Code Mark Exclusivity (Issue #5)', () => {
       const result = parser.markdownToAdf(markdown);
 
       const cell = result.content[0].content[1].content[0];
-      const textNode = cell.content[0];
+      const textNode = cell.content[0].content[0];
       expect(textNode.marks).toHaveLength(1);
       expect(textNode.marks[0].type).toBe('code');
     });
@@ -207,7 +207,7 @@ describe('Code Mark Exclusivity (Issue #5)', () => {
 
       const dataRows = result.content[1].content.slice(1);
       dataRows.forEach(row => {
-        const textNode = row.content[1].content[0];
+        const textNode = row.content[1].content[0].content[0];
         expect(textNode.marks).toHaveLength(1);
         expect(textNode.marks[0].type).toBe('code');
       });
