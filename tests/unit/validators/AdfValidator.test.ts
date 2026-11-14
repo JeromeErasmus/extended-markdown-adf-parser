@@ -427,6 +427,89 @@ describe('AdfValidator', () => {
       expect(result.valid).toBe(true);
     });
 
+    it('should validate link mark with a non-URI href (e.g. an internal app reference)', () => {
+      // Regression test for https://github.com/JeromeErasmus/extended-markdown-adf-parser/issues/11
+      // Jira Cloud accepts and renders `link` marks whose `href` is not a full URI -
+      // e.g. bare tokens produced by third-party apps/automations. The schema was
+      // previously using format: "uri", which rejects these even though Jira itself
+      // does not enforce it.
+      const adf: ADFDocument = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            text: 'DwrItemPosting',
+            marks: [{
+              type: 'link',
+              attrs: { href: 'Entity.DwrItemPostingId' }
+            }]
+          }]
+        }]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should validate link mark whose href contains URI template placeholders', () => {
+      // Regression test for https://github.com/JeromeErasmus/extended-markdown-adf-parser/issues/11
+      // format: "uri-reference" (the fix for the case above) is still RFC 3986
+      // well-formedness checking, so it rejects real Jira Cloud content like API
+      // documentation links containing unencoded template placeholders (e.g. "{id}").
+      // Jira does not validate href against any URI grammar - it stores and renders
+      // whatever string was entered - so the schema should not either.
+      const adf: ADFDocument = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            text: 'http://api.example.com/v3/item_postings/{id}',
+            marks: [{
+              type: 'link',
+              attrs: { href: 'http://api.example.com/v3/item_postings/{id}' }
+            }]
+          }]
+        }]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(true);
+    });
+
+    it('should validate link mark with an empty-string href', () => {
+      // Regression test for https://github.com/JeromeErasmus/extended-markdown-adf-parser/issues/11
+      // Real Jira Cloud content sometimes has a `link` mark whose href is an
+      // empty string - e.g. an autolinked email address or bookmark reference
+      // whose target got stripped somewhere upstream, but the mark stuck
+      // around. Jira stores and renders this fine. The schema already allows
+      // any string for href, but AdfValidator's own supplementary check was
+      // treating an empty string as "missing" (`!href`) and rejecting it
+      // independently of the schema.
+      const adf: ADFDocument = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'paragraph',
+          content: [{
+            type: 'text',
+            text: 'user@example.com',
+            marks: [{
+              type: 'link',
+              attrs: { href: '' }
+            }]
+          }]
+        }]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
+
     it('should reject link mark without href', () => {
       const adf = {
         version: 1,
