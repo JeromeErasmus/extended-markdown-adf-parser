@@ -528,31 +528,41 @@ export class MarkdownToAdfEngine {
    * Remove paragraphs that contain only whitespace text nodes
    */
   private cleanupEmptyParagraphs(adf: ADFDocument): ADFDocument {
-    const cleanupNode = (node: any): boolean => {
+    // Table cells must always have non-empty content (ADF spec); removing
+    // their only paragraph here - even if whitespace-only - would leave an
+    // empty cell and reopen Jira's INVALID_INPUT rejection.
+    const nonEmptyParents = new Set(['tableCell', 'tableHeader']);
+
+    const cleanupNode = (node: any, parentType?: string): boolean => {
       // If this is a paragraph with only whitespace text nodes, remove it
-      if (node.type === 'paragraph' && node.content) {
-        const hasOnlyWhitespace = node.content.every((child: any) => 
+      if (
+        node.type === 'paragraph' &&
+        node.content &&
+        node.content.length > 0 &&
+        !nonEmptyParents.has(parentType || '')
+      ) {
+        const hasOnlyWhitespace = node.content.every((child: any) =>
           child.type === 'text' && (!child.text || child.text.trim() === '')
         );
-        
+
         if (hasOnlyWhitespace) {
           return false; // Mark for removal
         }
       }
-      
+
       // Recursively clean up children
       if (node.content && Array.isArray(node.content)) {
-        node.content = node.content.filter(cleanupNode);
+        node.content = node.content.filter((child: any) => cleanupNode(child, node.type));
       }
-      
+
       return true; // Keep this node
     };
-    
+
     const cleanedAdf = { ...adf };
     if (cleanedAdf.content) {
-      cleanedAdf.content = cleanedAdf.content.filter(cleanupNode);
+      cleanedAdf.content = cleanedAdf.content.filter((node: any) => cleanupNode(node, undefined));
     }
-    
+
     return cleanedAdf;
   }
 

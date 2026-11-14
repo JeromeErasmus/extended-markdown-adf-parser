@@ -316,7 +316,7 @@ export class ASTBuilder {
     
     const node: ADFNode = {
       type: isHeader ? 'tableHeader' : 'tableCell',
-      content
+      content: this.wrapCellContentInParagraph(content)
     };
 
     const attrs: any = { ...customAttrs };
@@ -339,6 +339,22 @@ export class ASTBuilder {
     }
 
     return node;
+  }
+
+  private wrapCellContentInParagraph(content: ADFNode[]): ADFNode[] {
+    if (!content || content.length === 0) {
+      return [{ type: 'paragraph', content: [] }];
+    }
+    const blockTypes = [
+      'paragraph', 'codeBlock', 'bulletList', 'orderedList',
+      'blockquote', 'heading', 'mediaSingle', 'rule', 'panel',
+      'mediaGroup', 'table', 'expand', 'nestedExpand'
+    ];
+    const hasBlockContent = content.some(n => blockTypes.includes(n.type));
+    if (hasBlockContent) {
+      return content;
+    }
+    return [{ type: 'paragraph', content }];
   }
 
   private convertPanel(token: Token): ADFNode {
@@ -1689,7 +1705,7 @@ export class ASTBuilder {
   private convertMdastTableCell(node: any, isHeader = false): ADFNode {
     const adfNode: ADFNode = {
       type: isHeader ? 'tableHeader' : 'tableCell',
-      content: this.convertMdastNodesToADF(node.children)
+      content: this.wrapCellContentInParagraph(this.convertMdastNodesToADF(node.children))
     };
 
     // Apply metadata if available
@@ -2470,7 +2486,7 @@ export class ASTBuilder {
         const isHeader = !headerProcessed;
         const cellNodes: ADFNode[] = cells.map(cellContent => ({
           type: isHeader ? 'tableHeader' : 'tableCell',
-          content: this.parseInlineContentWithSocialElements(cellContent)
+          content: this.wrapCellContentInParagraph(this.parseInlineContentWithSocialElements(cellContent))
         }));
 
         tableRows.push({

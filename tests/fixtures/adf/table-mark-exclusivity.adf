@@ -24,8 +24,13 @@
               "type": "tableHeader",
               "content": [
                 {
-                  "type": "text",
-                  "text": "Feature"
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Feature"
+                    }
+                  ]
                 }
               ]
             },
@@ -33,34 +38,11 @@
               "type": "tableHeader",
               "content": [
                 {
-                  "type": "text",
-                  "text": "Example"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "type": "tableRow",
-          "content": [
-            {
-              "type": "tableCell",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "Bold code"
-                }
-              ]
-            },
-            {
-              "type": "tableCell",
-              "content": [
-                {
-                  "type": "text",
-                  "text": "code",
-                  "marks": [
+                  "type": "paragraph",
+                  "content": [
                     {
-                      "type": "code"
+                      "type": "text",
+                      "text": "Example"
                     }
                   ]
                 }
@@ -75,8 +57,13 @@
               "type": "tableCell",
               "content": [
                 {
-                  "type": "text",
-                  "text": "Linked code"
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Bold code"
+                    }
+                  ]
                 }
               ]
             },
@@ -84,11 +71,54 @@
               "type": "tableCell",
               "content": [
                 {
-                  "type": "text",
-                  "text": "code",
-                  "marks": [
+                  "type": "paragraph",
+                  "content": [
                     {
-                      "type": "code"
+                      "type": "text",
+                      "text": "code",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "tableRow",
+          "content": [
+            {
+              "type": "tableCell",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "Linked code"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "tableCell",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "code",
+                      "marks": [
+                        {
+                          "type": "code"
+                        }
+                      ]
                     }
                   ]
                 }
