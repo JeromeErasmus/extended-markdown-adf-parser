@@ -4,7 +4,14 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { Parser } from '../../../src/parser/Parser';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const fixturesDir = join(__dirname, '../../fixtures');
 
 describe('Code Mark Exclusivity (Issue #5)', () => {
   const parser = new Parser();
@@ -187,6 +194,23 @@ describe('Code Mark Exclusivity (Issue #5)', () => {
       const textNode = cell.content[0];
       expect(textNode.marks).toHaveLength(1);
       expect(textNode.marks[0].type).toBe('code');
+    });
+  });
+
+  describe('Fixture coverage', () => {
+    it('should match table-mark-exclusivity fixture and keep only the code mark', () => {
+      const markdown = readFileSync(join(fixturesDir, 'markdown/table-mark-exclusivity.md'), 'utf-8');
+      const expectedAdf = JSON.parse(readFileSync(join(fixturesDir, 'adf/table-mark-exclusivity.adf'), 'utf-8'));
+
+      const result = parser.markdownToAdf(markdown);
+      expect(result).toEqual(expectedAdf);
+
+      const dataRows = result.content[1].content.slice(1);
+      dataRows.forEach(row => {
+        const textNode = row.content[1].content[0];
+        expect(textNode.marks).toHaveLength(1);
+        expect(textNode.marks[0].type).toBe('code');
+      });
     });
   });
 });

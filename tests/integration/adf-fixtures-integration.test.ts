@@ -223,10 +223,11 @@ describe('ADF Fixtures Integration Tests', () => {
   describe('All Fixtures Validation', () => {
     const fixtures = [
       'simple-document',
-      'rich-content', 
+      'rich-content',
       'table-document',
       'media-expand',
-      'edge-cases'
+      'edge-cases',
+      'schema-mark-regressions'
     ];
 
     fixtures.forEach(fixtureName => {
