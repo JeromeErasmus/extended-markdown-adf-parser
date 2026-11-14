@@ -501,6 +501,49 @@ describe('AdfValidator', () => {
         );
       });
     });
+
+    // fontSize is Jira/Confluence's block-level font size control (e.g. the
+    // editor's "small text" option applied to a paragraph). It was missing
+    // from the mark type enum, so real Jira Cloud content using it failed
+    // validateAdf() (regression for PSA-1884).
+    it('should validate fontSize mark on a paragraph node', () => {
+      const adf: ADFDocument = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Small text' }],
+          marks: [{
+            type: 'fontSize',
+            attrs: { fontSize: 'small' }
+          }]
+        } as any]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('should reject fontSize mark without a fontSize attribute', () => {
+      const adf = {
+        version: 1,
+        type: 'doc',
+        content: [{
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Small text' }],
+          marks: [{ type: 'fontSize' }]
+        }]
+      };
+
+      const result = validator.validate(adf);
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(
+        expect.objectContaining({
+          code: 'INVALID_FONT_SIZE'
+        })
+      );
+    });
   });
 
   describe('Nested Content Validation', () => {
