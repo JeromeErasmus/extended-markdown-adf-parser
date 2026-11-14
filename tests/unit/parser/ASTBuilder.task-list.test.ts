@@ -409,10 +409,11 @@ describe('ASTBuilder - Task List Conversion', () => {
       const adf = builder.buildADF(tokens);
       expect(adf.content[0].type).toBe('bulletList');
 
-      // The re-prepend modifies itemToken.content to "[x] Checked task"
-      // Verify the token content was modified (the re-prepend happened)
-      const itemToken = (tokens[0] as any).children[0] as ListItemToken;
-      expect(itemToken.content).toContain('[x]');
+      // The checkbox state must be visible in the rendered ADF output -
+      // not just mutated on an internal token field that's never read.
+      const listItem = adf.content[0].content[0];
+      const firstParagraphText = listItem.content[0].content[0];
+      expect(firstParagraphText.text).toBe('[x] First para');
     });
   });
 });

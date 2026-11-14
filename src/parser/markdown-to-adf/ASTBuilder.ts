@@ -236,18 +236,17 @@ export class ASTBuilder {
     const isOrdered = listToken.ordered || false;
     const customAttrs = this.extractCustomAttributes(token.metadata);
 
-    // Check if any child token has a checkbox (checked property)
     const children = token.children || [];
-    const hasCheckbox = children.some((child: any) =>
-      (child as ListItemToken).checked !== undefined && (child as ListItemToken).checked !== null
-    );
+    const isChecked = (child: any) =>
+      (child as ListItemToken).checked !== undefined && (child as ListItemToken).checked !== null;
+    const hasCheckbox = children.some(isChecked);
+    // A taskList requires EVERY item to be a checkbox item - "some" would
+    // fabricate taskItem/state on plain bullets mixed into the same list.
+    const isPureCheckboxList = children.length > 0 && children.every(isChecked);
 
-    // If checkbox list and not ordered, attempt taskList conversion
-    if (hasCheckbox && !isOrdered) {
+    if (isPureCheckboxList && !isOrdered) {
       // Validate all checkbox items have simple content (single paragraph child only)
-      const allSimple = children.every((child: any) => {
-        return this.isTokenItemSimple(child);
-      });
+      const allSimple = children.every((child: any) => this.isTokenItemSimple(child));
 
       if (allSimple) {
         return {
@@ -256,15 +255,7 @@ export class ASTBuilder {
           content: children.map((child: any) => this.convertTaskItem(child as ListItemToken))
         };
       }
-      // Fall back to bulletList if any item has complex content
-      // Re-prepend checkbox syntax to content so it's not lost in the fallback path
-      for (const child of children) {
-        const itemToken = child as ListItemToken;
-        if (itemToken.checked !== undefined && itemToken.checked !== null) {
-          const prefix = itemToken.checked ? '[x] ' : '[ ] ';
-          itemToken.content = prefix + itemToken.content;
-        }
-      }
+      // Fall through to bulletList below; checkbox state re-inserted as text.
     }
 
     const attrs: any = {};
@@ -278,11 +269,46 @@ export class ASTBuilder {
       content: token.children ? this.convertTokensToNodes(token.children) : []
     };
 
+    // A mixed or complex-content list can't become a taskList, but a
+    // checkbox item's state must still be visible, not silently dropped -
+    // re-insert it as literal "[x] "/"[ ] " text on the rendered item.
+    if (hasCheckbox && !isOrdered) {
+      node.content.forEach((listItemNode, index) => {
+        if (isChecked(children[index])) {
+          const prefix = (children[index] as ListItemToken).checked ? '[x] ' : '[ ] ';
+          this.prependCheckboxPrefix(listItemNode, prefix);
+        }
+      });
+    }
+
     if (Object.keys(attrs).length > 0) {
       node.attrs = attrs;
     }
 
     return node;
+  }
+
+  /**
+   * Prepend checkbox state as literal text onto a listItem that couldn't
+   * become a taskItem, so the state is visible rather than silently lost.
+   */
+  private prependCheckboxPrefix(listItemNode: ADFNode, prefix: string): void {
+    const firstBlock = listItemNode.content?.[0];
+    const firstChild = firstBlock?.content?.[0];
+
+    if (firstChild?.type === 'text') {
+      firstChild.text = prefix + firstChild.text;
+      return;
+    }
+
+    // No existing text node to prepend to (e.g. item starts with a nested
+    // list or code block) - insert one so the state is still visible.
+    const prefixNode: ADFNode = { type: 'text', text: prefix.trim() };
+    if (firstBlock?.type === 'paragraph') {
+      firstBlock.content = [prefixNode, ...(firstBlock.content || [])];
+    } else if (listItemNode.content) {
+      listItemNode.content.unshift({ type: 'paragraph', content: [prefixNode] });
+    }
   }
 
   /**
@@ -1695,25 +1721,45 @@ export class ASTBuilder {
   }
 
   private convertMdastList(node: any): ADFNode {
-    // Detect checkbox/task list: any child with checked !== null && checked !== undefined
-    if (!node.ordered && node.children?.some((child: any) => child.checked !== null && child.checked !== undefined)) {
+    const children = node.children || [];
+    const isChecked = (child: any) => child.checked !== null && child.checked !== undefined;
+    const hasCheckbox = !node.ordered && children.some(isChecked);
+    // A taskList requires EVERY item to be a checkbox item - "some" would
+    // fabricate taskItem/state on plain bullets mixed into the same list.
+    const isPureCheckboxList = !node.ordered && children.length > 0 && children.every(isChecked);
+
+    if (isPureCheckboxList) {
       // Validate all checkbox items have simple content (single paragraph child only)
-      const allSimple = node.children.every((child: any) => this.isCheckboxItemSimple(child));
+      const allSimple = children.every((child: any) => this.isCheckboxItemSimple(child));
       if (allSimple) {
         return {
           type: 'taskList',
           attrs: { localId: crypto.randomUUID() },
-          content: node.children.map((child: any) => this.convertMdastTaskItem(child))
+          content: children.map((child: any) => this.convertMdastTaskItem(child))
         };
       }
-      // Fall back to bulletList if any item has complex content
+      // Fall through to bulletList below; checkbox state re-inserted as text.
     }
 
-    return {
+    const listNode: ADFNode = {
       type: node.ordered ? 'orderedList' : 'bulletList',
       ...(node.start && node.start !== 1 && { attrs: { order: node.start } }),
-      content: this.convertMdastNodesToADF(node.children)
+      content: this.convertMdastNodesToADF(children)
     };
+
+    // A mixed or complex-content list can't become a taskList, but a
+    // checkbox item's state must still be visible, not silently dropped -
+    // re-insert it as literal "[x] "/"[ ] " text on the rendered item.
+    if (hasCheckbox) {
+      listNode.content.forEach((listItemNode, index) => {
+        if (isChecked(children[index])) {
+          const prefix = children[index].checked ? '[x] ' : '[ ] ';
+          this.prependCheckboxPrefix(listItemNode, prefix);
+        }
+      });
+    }
+
+    return listNode;
   }
 
   /**
