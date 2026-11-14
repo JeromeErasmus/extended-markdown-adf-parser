@@ -571,10 +571,9 @@ export class ASTBuilder {
       return childNodes.map(node => {
         if (node.type === 'text') {
           const marks = node.marks ? [...node.marks] : [];
-          marks.push({ type: markType });
           return {
             ...node,
-            marks
+            marks: this.addMarkWithCodeExclusivity(marks, { type: markType })
           };
         }
         return node;
@@ -589,6 +588,17 @@ export class ASTBuilder {
     }
   }
   
+  // ADF forbids combining `code` with any other mark (Issue #5).
+  private addMarkWithCodeExclusivity(marks: ADFMark[], mark: ADFMark): ADFMark[] {
+    if (mark.type === 'code') {
+      return [mark];
+    }
+    if (marks.some(m => m.type === 'code')) {
+      return marks;
+    }
+    return [...marks, mark];
+  }
+
   private getADFMarkType(tokenType: string): string {
     switch (tokenType) {
       case 'strong': return 'strong';
@@ -626,10 +636,9 @@ export class ASTBuilder {
       return childNodes.map(node => {
         if (node.type === 'text') {
           const marks = node.marks ? [...node.marks] : [];
-          marks.push({ type: 'link', attrs: linkAttrs });
           return {
             ...node,
-            marks
+            marks: this.addMarkWithCodeExclusivity(marks, { type: 'link', attrs: linkAttrs })
           };
         }
         return node;
@@ -1702,10 +1711,9 @@ export class ASTBuilder {
     // If content is text nodes, add strong marks
     const processedContent = content.map(child => {
       if (child.type === 'text') {
-        const marks = child.marks || [];
         return {
           ...child,
-          marks: [...marks, { type: 'strong' }]
+          marks: this.addMarkWithCodeExclusivity(child.marks || [], { type: 'strong' })
         };
       }
       return child;
@@ -1732,10 +1740,9 @@ export class ASTBuilder {
     // If content is text nodes, add em marks
     const processedContent = content.map(child => {
       if (child.type === 'text') {
-        const marks = child.marks || [];
         return {
           ...child,
-          marks: [...marks, { type: 'em' }]
+          marks: this.addMarkWithCodeExclusivity(child.marks || [], { type: 'em' })
         };
       }
       return child;
@@ -1773,10 +1780,9 @@ export class ASTBuilder {
     // If content is text nodes, add link marks
     const processedContent = content.map(child => {
       if (child.type === 'text') {
-        const marks = child.marks || [];
         return {
           ...child,
-          marks: [...marks, { type: 'link', attrs: { href: node.url } }]
+          marks: this.addMarkWithCodeExclusivity(child.marks || [], { type: 'link', attrs: { href: node.url } })
         };
       }
       return child;
@@ -1967,10 +1973,9 @@ export class ASTBuilder {
     return childNodes.map(node => {
       if (markableNodeTypes.includes(node.type)) {
         const marks = node.marks ? [...node.marks] : [];
-        marks.push(mark);
         return {
           ...node,
-          marks
+          marks: this.addMarkWithCodeExclusivity(marks, mark)
         };
       }
       return node;
