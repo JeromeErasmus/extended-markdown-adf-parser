@@ -2055,10 +2055,10 @@ export class ASTBuilder {
    */
   private convertMdastInlineNodes(nodes: any[]): ADFNode[] {
     const adfNodes: ADFNode[] = [];
-    
-    
+    const pairedNodes = this.pairHtmlMarkTags(nodes);
+
     // Convert all nodes normally
-    for (const node of nodes) {
+    for (const node of pairedNodes) {
       const result = this.convertMdastInlineNode(node);
       if (Array.isArray(result)) {
         adfNodes.push(...result);
@@ -2066,8 +2066,48 @@ export class ASTBuilder {
         adfNodes.push(result);
       }
     }
-    
+
     return adfNodes;
+  }
+
+  /**
+   * Decodes `<span style="color: ...">...</span>` and `<u>...</u>` HTML tag pairs (emitted by
+   * TextColorConverter/UnderlineConverter) back into textColor/underline marks.
+   */
+  private pairHtmlMarkTags(nodes: any[]): any[] {
+    const colorOpenPattern = /^<span style="color: ([^"]+)">$/;
+    const result: any[] = [];
+    let i = 0;
+
+    while (i < nodes.length) {
+      const node = nodes[i];
+
+      if (node.type === 'html' && typeof node.value === 'string') {
+        const colorMatch = node.value.match(colorOpenPattern);
+        const isUnderlineOpen = node.value === '<u>';
+
+        if (colorMatch || isUnderlineOpen) {
+          const closeValue = colorMatch ? '</span>' : '</u>';
+          const closeIndex = nodes.findIndex((n, idx) => idx > i && n.type === 'html' && n.value === closeValue);
+
+          if (closeIndex !== -1) {
+            const between = this.pairHtmlMarkTags(nodes.slice(i + 1, closeIndex));
+            const wrapped = colorMatch
+              ? this.wrapWithMark(between, 'textColor', { color: colorMatch[1] })
+              : this.wrapWithMark(between, 'underline');
+
+            result.push({ type: 'adfPrewrapped', nodes: wrapped });
+            i = closeIndex + 1;
+            continue;
+          }
+        }
+      }
+
+      result.push(node);
+      i++;
+    }
+
+    return result;
   }
 
   /**
@@ -2075,6 +2115,10 @@ export class ASTBuilder {
    */
   private convertMdastInlineNode(node: any): ADFNode | ADFNode[] | null {
     switch (node.type) {
+      case 'adfPrewrapped':
+        // Already-converted content from pairHtmlMarkTags; pass through as-is.
+        return node.nodes;
+
       case 'text':
         // Check if this text node has metadata with marks (from span-style comments)
         if (node.data?.adfMetadata && Array.isArray(node.data.adfMetadata)) {

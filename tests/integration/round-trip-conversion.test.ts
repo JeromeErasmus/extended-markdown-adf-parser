@@ -220,6 +220,31 @@ describe('Round-trip Conversion Tests', () => {
     });
   });
 
+  describe('Mark Fidelity Round-trip', () => {
+    const findText = (node: any, text: string): any => {
+      if (node.type === 'text' && node.text === text) return node;
+      for (const child of node.content || []) {
+        const found = findText(child, text);
+        if (found) return found;
+      }
+      return null;
+    };
+
+    it('preserves textColor/underline marks through adf -> markdown -> adf', () => {
+      const adf = loadAdfFixture('comprehensive-marks');
+      const markdown = parser.adfToMarkdown(adf);
+      const roundTripped = parser.markdownToAdf(markdown);
+
+      for (const text of ['underlined text', 'colored text']) {
+        const original = findText({ content: adf.content }, text);
+        const result = findText({ content: roundTripped.content }, text);
+        expect(result?.marks?.map((m: any) => m.type).sort()).toEqual(
+          original?.marks?.map((m: any) => m.type).sort()
+        );
+      }
+    });
+  });
+
   describe('Configuration Consistency', () => {
     it('should respect strict mode consistently', () => {
       const validAdf = loadAdfFixture('simple-document');
