@@ -245,6 +245,21 @@ describe('Round-trip Conversion Tests', () => {
     });
   });
 
+  describe('Ordered List Continuity', () => {
+    it('keeps a nested list attached to its ordered-list item through adf -> markdown -> adf', () => {
+      const adf = loadAdfFixture('edge-cases');
+      const markdown = parser.adfToMarkdown(adf);
+      const roundTripped = parser.markdownToAdf(markdown);
+
+      const orderedLists = (nodes: any[]): any[] => nodes.filter(n => n.type === 'orderedList');
+      const original = orderedLists(adf.content as any[]);
+      const result = orderedLists(roundTripped.content as any[]);
+
+      expect(result).toHaveLength(original.length);
+      expect(result[0].content).toHaveLength(original[0].content.length);
+    });
+  });
+
   describe('Configuration Consistency', () => {
     it('should respect strict mode consistently', () => {
       const validAdf = loadAdfFixture('simple-document');

@@ -54,15 +54,13 @@ export class OrderedListConverter implements NodeConverter {
     const listItems = orderedListNode.content.map((listItem, index) => {
       const itemConverter = context.options.registry?.getNodeConverter('listItem');
       if (itemConverter) {
-        const itemContent = itemConverter.toMarkdown(listItem, { 
-          ...context, 
-          depth: context.depth + 1,
-          parent: orderedListNode 
-        });
-        
-        // Replace the bullet point with numbered item
         const number = startOrder + index;
-        return itemContent.replace(/^- /, `${number}. `);
+        return itemConverter.toMarkdown(listItem, {
+          ...context,
+          depth: context.depth + 1,
+          parent: orderedListNode,
+          marker: `${number}. `,
+        });
       }
       return '';
     }).filter(item => item.length > 0);

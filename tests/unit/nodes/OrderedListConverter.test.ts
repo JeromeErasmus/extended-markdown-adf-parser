@@ -12,7 +12,9 @@ describe('OrderedListConverter', () => {
 
   const mockListItemConverter = {
     nodeType: 'listItem',
-    toMarkdown: jest.fn().mockImplementation((node: any) => `- ${node.content?.[0]?.content?.[0]?.text || 'item'}`)
+    toMarkdown: jest.fn().mockImplementation(
+      (node: any, ctx: any) => `${ctx?.marker ?? '- '}${node.content?.[0]?.content?.[0]?.text || 'item'}`
+    )
   };
 
   const mockContext: ConversionContext = {
@@ -58,11 +60,6 @@ describe('OrderedListConverter', () => {
     });
 
     it('should convert multi-item ordered list with correct numbering', () => {
-      mockListItemConverter.toMarkdown
-        .mockReturnValueOnce('- First item')
-        .mockReturnValueOnce('- Second item')
-        .mockReturnValueOnce('- Third item');
-
       const node: OrderedListNode = {
         type: 'orderedList',
         content: [
@@ -102,10 +99,6 @@ describe('OrderedListConverter', () => {
     });
 
     it('should respect custom start order', () => {
-      mockListItemConverter.toMarkdown
-        .mockReturnValueOnce('- First item')
-        .mockReturnValueOnce('- Second item');
-
       const node: OrderedListNode = {
         type: 'orderedList',
         attrs: {
@@ -158,9 +151,9 @@ describe('OrderedListConverter', () => {
 
     it('should filter out empty list items', () => {
       mockListItemConverter.toMarkdown
-        .mockReturnValueOnce('- First item')
+        .mockImplementationOnce((_node: any, ctx: any) => `${ctx.marker}First item`)
         .mockReturnValueOnce('')
-        .mockReturnValueOnce('- Third item');
+        .mockImplementationOnce((_node: any, ctx: any) => `${ctx.marker}Third item`);
 
       const node: OrderedListNode = {
         type: 'orderedList',
@@ -244,7 +237,7 @@ describe('OrderedListConverter', () => {
         ]
       };
 
-      mockListItemConverter.toMarkdown.mockReturnValue('- Item with metadata');
+      mockListItemConverter.toMarkdown.mockImplementation((_node: any, ctx: any) => `${ctx.marker}Item with metadata`);
 
       const result = converter.toMarkdown(node, mockContext);
       expect(result).toBe('1. Item with metadata<!-- adf:orderedList attrs=\'{"customAttr":"value","listStyle":"roman"}\' -->');
@@ -269,7 +262,7 @@ describe('OrderedListConverter', () => {
         ]
       };
 
-      mockListItemConverter.toMarkdown.mockReturnValue('- Simple item');
+      mockListItemConverter.toMarkdown.mockImplementation((_node: any, ctx: any) => `${ctx.marker}Simple item`);
 
       const result = converter.toMarkdown(node, mockContext);
       expect(result).toBe('3. Simple item');
@@ -298,7 +291,8 @@ describe('OrderedListConverter', () => {
         {
           ...mockContext,
           depth: mockContext.depth + 1,
-          parent: node
+          parent: node,
+          marker: '1. '
         }
       );
     });
