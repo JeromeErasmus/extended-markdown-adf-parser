@@ -210,7 +210,8 @@ describe('BulletListConverter', () => {
         {
           ...mockContext,
           depth: mockContext.depth + 1,
-          parent: node
+          parent: node,
+          marker: '- '
         }
       );
     });

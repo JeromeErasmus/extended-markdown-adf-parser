@@ -786,6 +786,19 @@ export class ASTBuilder {
   }
 
   /**
+   * Derive the markdown text an emoji node's attrs were encoded as
+   * (mirrors EmojiConverter.toMarkdown's precedence: actual emoji char, then shortName)
+   */
+  private getEmojiMarkdownText(attrs: Record<string, any>): string {
+    if (attrs.text) return attrs.text;
+    if (attrs.shortName) {
+      const shortName = String(attrs.shortName);
+      return shortName.startsWith(':') && shortName.endsWith(':') ? shortName : `:${shortName}:`;
+    }
+    return '';
+  }
+
+  /**
    * Check if content contains social elements that need special parsing
    */
   private hasSocialElements(content: string): boolean {
@@ -1422,20 +1435,20 @@ export class ASTBuilder {
       case 'toml':
         // Skip frontmatter nodes - they're handled separately
         return null;
+      case 'adfPrewrapped':
+        // Already-converted content from pairHtmlMarkTags; pass through as-is.
+        return { __multipleNodes: node.nodes } as any;
       case 'text':
         // Check if this text node has metadata with marks (from span-style comments)
         if (node.data?.adfMetadata && Array.isArray(node.data.adfMetadata)) {
-          console.log('DEBUG: Found adfMetadata:', JSON.stringify(node.data.adfMetadata, null, 2));
           const metadata = node.data.adfMetadata[0];
           if (metadata && metadata.marks && Array.isArray(metadata.marks)) {
-            console.log('DEBUG: Found marks:', JSON.stringify(metadata.marks, null, 2));
             // Create text node with the marks from metadata
             adfNode = {
               type: 'text',
               text: node.value,
               marks: metadata.marks
             };
-            console.log('DEBUG: Created ADF node with marks:', JSON.stringify(adfNode, null, 2));
             break;
           }
         }
@@ -1858,9 +1871,12 @@ export class ASTBuilder {
   }
 
   private convertMdastTableCell(node: any, isHeader = false): ADFNode {
+    // Table cell content bypasses convertMdastInlineNodes, so run the same
+    // HTML-mark-pairing pre-pass here or textColor/underline inside a cell corrupts.
+    const pairedChildren = this.pairHtmlMarkTags(node.children);
     const adfNode: ADFNode = {
       type: isHeader ? 'tableHeader' : 'tableCell',
-      content: this.wrapCellContentInParagraph(this.convertMdastNodesToADF(node.children))
+      content: this.wrapCellContentInParagraph(this.convertMdastNodesToADF(pairedChildren))
     };
 
     // Apply metadata if available
@@ -2042,10 +2058,10 @@ export class ASTBuilder {
    */
   private convertMdastInlineNodes(nodes: any[]): ADFNode[] {
     const adfNodes: ADFNode[] = [];
-    
-    
+    const pairedNodes = this.pairHtmlMarkTags(nodes);
+
     // Convert all nodes normally
-    for (const node of nodes) {
+    for (const node of pairedNodes) {
       const result = this.convertMdastInlineNode(node);
       if (Array.isArray(result)) {
         adfNodes.push(...result);
@@ -2053,8 +2069,48 @@ export class ASTBuilder {
         adfNodes.push(result);
       }
     }
-    
+
     return adfNodes;
+  }
+
+  /**
+   * Decodes `<span style="color: ...">...</span>` and `<u>...</u>` HTML tag pairs (emitted by
+   * TextColorConverter/UnderlineConverter) back into textColor/underline marks.
+   */
+  private pairHtmlMarkTags(nodes: any[]): any[] {
+    const colorOpenPattern = /^<span style="color: ([^"]+)">$/;
+    const result: any[] = [];
+    let i = 0;
+
+    while (i < nodes.length) {
+      const node = nodes[i];
+
+      if (node.type === 'html' && typeof node.value === 'string') {
+        const colorMatch = node.value.match(colorOpenPattern);
+        const isUnderlineOpen = node.value === '<u>';
+
+        if (colorMatch || isUnderlineOpen) {
+          const closeValue = colorMatch ? '</span>' : '</u>';
+          const closeIndex = nodes.findIndex((n, idx) => idx > i && n.type === 'html' && n.value === closeValue);
+
+          if (closeIndex !== -1) {
+            const between = this.pairHtmlMarkTags(nodes.slice(i + 1, closeIndex));
+            const wrapped = colorMatch
+              ? this.wrapWithMark(between, 'textColor', { color: colorMatch[1] })
+              : this.wrapWithMark(between, 'underline');
+
+            result.push({ type: 'adfPrewrapped', nodes: wrapped });
+            i = closeIndex + 1;
+            continue;
+          }
+        }
+      }
+
+      result.push(node);
+      i++;
+    }
+
+    return result;
   }
 
   /**
@@ -2062,6 +2118,10 @@ export class ASTBuilder {
    */
   private convertMdastInlineNode(node: any): ADFNode | ADFNode[] | null {
     switch (node.type) {
+      case 'adfPrewrapped':
+        // Already-converted content from pairHtmlMarkTags; pass through as-is.
+        return node.nodes;
+
       case 'text':
         // Check if this text node has metadata with marks (from span-style comments)
         if (node.data?.adfMetadata && Array.isArray(node.data.adfMetadata)) {
@@ -2074,8 +2134,19 @@ export class ASTBuilder {
               marks: metadata.marks
             };
           }
+
+          // Split the emoji off the merged text run; fall through unsplit if attrs don't match
+          if (metadata && metadata.nodeType === 'emoji' && metadata.attrs) {
+            const value = typeof node.value === 'string' ? node.value : '';
+            const emojiText = this.getEmojiMarkdownText(metadata.attrs);
+            if (emojiText && value.endsWith(emojiText)) {
+              const leadingText = value.slice(0, value.length - emojiText.length);
+              const emojiNode: ADFNode = { type: 'emoji', attrs: metadata.attrs };
+              return leadingText ? [...this.processTextNodeForSocialElements(leadingText), emojiNode] : emojiNode;
+            }
+          }
         }
-        
+
         // Process text node for social elements and special syntax
         return this.processTextNodeForSocialElements(node.value);
       
@@ -2092,6 +2163,13 @@ export class ASTBuilder {
         return this.wrapWithMark(node.children, 'strike');
       
       case 'link':
+        if (node.data?.adfMetadata && Array.isArray(node.data.adfMetadata)) {
+          const metadata = node.data.adfMetadata[0];
+          if (metadata && metadata.nodeType === 'mention' && metadata.attrs) {
+            return { type: 'mention', attrs: metadata.attrs };
+          }
+        }
+
         // Check if this is an inline card (card: URL)
         if (node.url.startsWith('card:')) {
           return {

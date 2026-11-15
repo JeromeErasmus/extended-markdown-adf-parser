@@ -220,6 +220,46 @@ describe('Round-trip Conversion Tests', () => {
     });
   });
 
+  describe('Mark Fidelity Round-trip', () => {
+    const findText = (node: any, text: string): any => {
+      if (node.type === 'text' && node.text === text) return node;
+      for (const child of node.content || []) {
+        const found = findText(child, text);
+        if (found) return found;
+      }
+      return null;
+    };
+
+    it('preserves textColor/underline marks through adf -> markdown -> adf', () => {
+      const adf = loadAdfFixture('comprehensive-marks');
+      const markdown = parser.adfToMarkdown(adf);
+      const roundTripped = parser.markdownToAdf(markdown);
+
+      for (const text of ['underlined text', 'colored text']) {
+        const original = findText({ content: adf.content }, text);
+        const result = findText({ content: roundTripped.content }, text);
+        expect(result?.marks?.map((m: any) => m.type).sort()).toEqual(
+          original?.marks?.map((m: any) => m.type).sort()
+        );
+      }
+    });
+  });
+
+  describe('Ordered List Continuity', () => {
+    it('keeps a nested list attached to its ordered-list item through adf -> markdown -> adf', () => {
+      const adf = loadAdfFixture('edge-cases');
+      const markdown = parser.adfToMarkdown(adf);
+      const roundTripped = parser.markdownToAdf(markdown);
+
+      const orderedLists = (nodes: any[]): any[] => nodes.filter(n => n.type === 'orderedList');
+      const original = orderedLists(adf.content as any[]);
+      const result = orderedLists(roundTripped.content as any[]);
+
+      expect(result).toHaveLength(original.length);
+      expect(result[0].content).toHaveLength(original[0].content.length);
+    });
+  });
+
   describe('Configuration Consistency', () => {
     it('should respect strict mode consistently', () => {
       const validAdf = loadAdfFixture('simple-document');

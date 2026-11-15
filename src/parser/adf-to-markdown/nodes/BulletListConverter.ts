@@ -49,10 +49,11 @@ export class BulletListConverter implements NodeConverter {
     const listItems = bulletListNode.content.map(listItem => {
       const itemConverter = context.options.registry?.getNodeConverter('listItem');
       if (itemConverter) {
-        return itemConverter.toMarkdown(listItem, { 
-          ...context, 
+        return itemConverter.toMarkdown(listItem, {
+          ...context,
           depth: context.depth + 1,
-          parent: bulletListNode 
+          parent: bulletListNode,
+          marker: '- ',
         });
       }
       return '';

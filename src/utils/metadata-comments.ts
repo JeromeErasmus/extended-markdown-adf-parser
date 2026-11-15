@@ -361,15 +361,62 @@ export function processSpanMetadataComments(tree: Root): Root {
 }
 
 /**
+ * Pairs an `adf:emoji`/`adf:mention` comment with its actual sibling node,
+ * since `findMetadataTarget` would otherwise misattribute it to the parent.
+ */
+export function processEmojiMentionMetadataComments(tree: Root): Root {
+  const processedTree = JSON.parse(JSON.stringify(tree)) as Root;
+
+  visit(processedTree, (node, index, parent) => {
+    if (!parent || typeof index !== 'number') return;
+
+    const siblings = (parent as Parent).children;
+    const sibling = siblings[index + 1] as any;
+    if (!sibling || sibling.type !== 'html' || typeof sibling.value !== 'string') return;
+
+    let match: RegExpMatchArray | null = null;
+    let nodeType: 'emoji' | 'mention' | null = null;
+
+    if (node.type === 'text') {
+      match = sibling.value.match(/^<!--\s*adf:emoji\s+attrs='(.+?)'\s*-->$/);
+      nodeType = 'emoji';
+    } else if (node.type === 'link' && typeof (node as any).url === 'string' && (node as any).url.startsWith('adf://mention/')) {
+      match = sibling.value.match(/^<!--\s*adf:mention\s+attrs='(.+?)'\s*-->$/);
+      nodeType = 'mention';
+    }
+
+    if (!match || !nodeType) return;
+
+    let attrs: Record<string, any>;
+    try {
+      attrs = JSON.parse(match[1]);
+    } catch (error) {
+      return;
+    }
+
+    const nodeData = (node as any).data || ((node as any).data = {});
+    if (!nodeData.adfMetadata) nodeData.adfMetadata = [];
+    (nodeData.adfMetadata as AdfMetadata[]).push({ nodeType, attrs, raw: sibling.value });
+
+    siblings.splice(index + 1, 1);
+  });
+
+  return processedTree;
+}
+
+/**
  * Process metadata comments in an mdast tree
  * Associates comments with target nodes and removes the comment nodes
  */
 export function processMetadataComments(tree: Root): Root {
   let processedTree = JSON.parse(JSON.stringify(tree)) as Root;
-  
+
   // First process span-style comments
   processedTree = processSpanMetadataComments(processedTree);
-  
+
+  // Emoji/mention comments need direct sibling pairing, not findMetadataTarget
+  processedTree = processEmojiMentionMetadataComments(processedTree);
+
   const toRemove: { parent: Parent; index: number }[] = [];
 
   visit(processedTree, (node, index, parent) => {

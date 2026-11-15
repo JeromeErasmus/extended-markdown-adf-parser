@@ -42,8 +42,10 @@ export class ListItemConverter implements NodeConverter {
   toMarkdown(node: ADFNode, context: ConversionContext): string {
     const listItemNode = node as ListItemNode;
     
+    const marker = context.marker ?? '- ';
+
     if (!listItemNode.content || listItemNode.content.length === 0) {
-      return '- ';
+      return marker;
     }
 
     // For list item content, we need block-level spacing between elements (paragraph + nested lists)
@@ -52,14 +54,16 @@ export class ListItemConverter implements NodeConverter {
       if (!converter) return '';
       return converter.toMarkdown(node, context);
     }).filter(content => content.trim().length > 0).join('\n\n');
-    
-    // Handle multi-paragraph list items by indenting continuation paragraphs
+
+    // Continuation lines must indent to the marker's width (e.g. '5. ' is wider than '- ')
+    // so nested content stays attached to this item under CommonMark list rules.
+    const continuationIndent = ' '.repeat(marker.length);
     const lines = content.split('\n');
     const indentedLines = lines.map((line, index) => {
       if (index === 0) {
-        return `- ${line}`;
+        return `${marker}${line}`;
       } else if (line.trim().length > 0) {
-        return `  ${line}`; // 2-space indent for continuation
+        return `${continuationIndent}${line}`;
       } else {
         return line; // Keep empty lines as-is
       }
