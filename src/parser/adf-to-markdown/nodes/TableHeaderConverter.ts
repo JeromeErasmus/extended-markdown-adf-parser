@@ -51,8 +51,9 @@ export class TableHeaderConverter implements NodeConverter {
     }
 
     // Convert content - typically paragraphs with text
-    const content = context.convertChildren(tableHeaderNode.content);
-    
+    // Escape literal pipes so they aren't read as extra column delimiters (issue #20)
+    const content = context.convertChildren(tableHeaderNode.content).replace(/\|/g, '\\|');
+
     // Handle colspan by duplicating content across cells (basic approach)
     const colspan = tableHeaderNode.attrs?.colspan || 1;
     if (colspan > 1) {

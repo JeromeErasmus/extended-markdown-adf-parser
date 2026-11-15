@@ -58,7 +58,12 @@ export class CodeBlockConverter implements NodeConverter {
       delete (customAttrs as any).language;
     }
     
-    let result = `\`\`\`${language}\n${codeContent}\n\`\`\``;
+    // Use a fence longer than any backtick run in the content so a nested fence
+    // (e.g. a code sample showing ``` itself) doesn't close the block early (issue #20)
+    const longestBacktickRun = Math.max(0, ...(codeContent.match(/`+/g) || []).map(run => run.length));
+    const fence = '`'.repeat(Math.max(3, longestBacktickRun + 1));
+
+    let result = `${fence}${language}\n${codeContent}\n${fence}`;
     
     // Add metadata for custom attributes
     if (Object.keys(customAttrs).length > 0) {

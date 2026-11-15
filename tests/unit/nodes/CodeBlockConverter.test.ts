@@ -138,7 +138,9 @@ describe('CodeBlockConverter', () => {
       };
 
       const result = converter.toMarkdown(node, mockContext);
-      expect(result).toBe('```markdown\n```javascript\nconsole.log("nested");\n```\n```');
+      // Fence must be longer than the content's longest backtick run (3) so it
+      // doesn't close early on the nested ``` (issue #20)
+      expect(result).toBe('````markdown\n```javascript\nconsole.log("nested");\n```\n````');
     });
   });
 });

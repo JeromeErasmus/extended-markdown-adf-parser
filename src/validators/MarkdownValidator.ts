@@ -62,7 +62,7 @@ export class MarkdownValidator {
     errors: Array<{ path?: string; message: string; code?: string; line?: number }>, 
     warnings: string[]
   ): void {
-    const fenceStack: Array<{type: string; line: number; content: string}> = [];
+    const fenceStack: Array<{type: string; line: number; content: string; length?: number}> = [];
     
     lines.forEach((line, index) => {
       const trimmed = line.trim();
@@ -124,14 +124,19 @@ export class MarkdownValidator {
       }
       
       // Code blocks - both opening and closing
-      if (trimmed.startsWith('```')) {
-        // Check if we have an open code block
-        if (fenceStack.length > 0 && fenceStack[fenceStack.length - 1].type === 'code') {
-          // This is a closing fence
+      const codeFenceMatch = trimmed.match(/^(`{3,})(.*)$/);
+      if (codeFenceMatch) {
+        const [, backticks, rest] = codeFenceMatch;
+        const openFence = fenceStack.length > 0 ? fenceStack[fenceStack.length - 1] : undefined;
+
+        // A closing fence must be at least as long as its opener and carry no info string;
+        // a shorter/annotated run of backticks is just content inside the block (e.g. a
+        // nested ``` sample), not a fence delimiter (issue #20)
+        if (openFence && openFence.type === 'code' && backticks.length >= (openFence.length ?? 3) && rest.trim() === '') {
           fenceStack.pop();
-        } else {
-          // This is an opening fence (```javascript, ``` plain, etc.)
-          fenceStack.push({type: 'code', line: index + 1, content: line});
+        } else if (!openFence || openFence.type !== 'code') {
+          // This is an opening fence (```javascript, ```` plain, etc.)
+          fenceStack.push({type: 'code', line: index + 1, content: line, length: backticks.length});
         }
         return;
       }

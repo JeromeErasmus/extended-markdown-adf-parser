@@ -54,7 +54,8 @@ export class TableCellConverter implements NodeConverter {
     const content = context.convertChildren(tableCellNode.content);
     
     // Handle multi-line content by replacing newlines with <br> for table compatibility
-    const cellContent = content.replace(/\n/g, '<br>');
+    // Escape literal pipes so they aren't read as extra column delimiters (issue #20)
+    const cellContent = content.replace(/\n/g, '<br>').replace(/\|/g, '\\|');
     
     // Handle colspan by duplicating content across cells (basic approach)
     const colspan = tableCellNode.attrs?.colspan || 1;
