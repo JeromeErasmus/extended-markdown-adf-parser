@@ -33,8 +33,6 @@ describe('Emoji/mention metadata round-trip (issue #20)', () => {
 
   it('preserves the full leading text when the emoji comment attrs do not match a suffix of the text (no silent data loss)', () => {
     const parser = new Parser();
-    // attrs' text ("🙈") is not a suffix of the preceding text node's value ("Hello world"),
-    // simulating mismatched/stale attrs on the comment.
     const markdown = 'Hello world<!-- adf:emoji attrs=\'{"shortName":":bogus:","text":"🙈"}\' -->';
 
     const result = parser.markdownToAdf(markdown);

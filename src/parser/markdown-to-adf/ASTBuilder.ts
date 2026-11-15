@@ -2088,13 +2088,7 @@ export class ASTBuilder {
             };
           }
 
-          // Emoji metadata comment consumed by the dedicated pre-pass: the text
-          // node's value is still the full merged run (leading plain text plus
-          // the trailing emoji), so split off the emoji's own markdown text
-          // before emitting the real emoji node. If the attrs-derived text
-          // doesn't match a suffix of the value (mismatched/missing attrs,
-          // unicode normalization, etc.) don't guess at a split — fall through
-          // to preserving the full text as-is rather than risk dropping it.
+          // Split the emoji off the merged text run; fall through unsplit if attrs don't match
           if (metadata && metadata.nodeType === 'emoji' && metadata.attrs) {
             const value = typeof node.value === 'string' ? node.value : '';
             const emojiText = this.getEmojiMarkdownText(metadata.attrs);
@@ -2122,7 +2116,6 @@ export class ASTBuilder {
         return this.wrapWithMark(node.children, 'strike');
       
       case 'link':
-        // Mention metadata comment consumed by the dedicated pre-pass
         if (node.data?.adfMetadata && Array.isArray(node.data.adfMetadata)) {
           const metadata = node.data.adfMetadata[0];
           if (metadata && metadata.nodeType === 'mention' && metadata.attrs) {

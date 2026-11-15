@@ -361,15 +361,8 @@ export function processSpanMetadataComments(tree: Root): Root {
 }
 
 /**
- * Process emoji/mention metadata comments
- *
- * These comments trail a sibling that `findMetadataTarget`'s Strategy 1 would
- * otherwise misattribute to the enclosing paragraph/heading (not the specific
- * text/link node the comment is actually for) whenever that container has more
- * than one child. This pre-pass pairs the comment directly with its preceding
- * sibling instead, bypassing that heuristic entirely:
- * - `text` node followed by `<!-- adf:emoji attrs='...' -->`
- * - `link` node (url starting `adf://mention/`) followed by `<!-- adf:mention attrs='...' -->`
+ * Pairs an `adf:emoji`/`adf:mention` comment with its actual sibling node,
+ * since `findMetadataTarget` would otherwise misattribute it to the parent.
  */
 export function processEmojiMentionMetadataComments(tree: Root): Root {
   const processedTree = JSON.parse(JSON.stringify(tree)) as Root;
@@ -405,7 +398,6 @@ export function processEmojiMentionMetadataComments(tree: Root): Root {
     if (!nodeData.adfMetadata) nodeData.adfMetadata = [];
     (nodeData.adfMetadata as AdfMetadata[]).push({ nodeType, attrs, raw: sibling.value });
 
-    // Consume the comment so the generic attachment loop never sees it
     siblings.splice(index + 1, 1);
   });
 
@@ -422,8 +414,7 @@ export function processMetadataComments(tree: Root): Root {
   // First process span-style comments
   processedTree = processSpanMetadataComments(processedTree);
 
-  // Then process emoji/mention comments, which need direct sibling pairing
-  // rather than the generic (and here, wrong-location) findMetadataTarget heuristic
+  // Emoji/mention comments need direct sibling pairing, not findMetadataTarget
   processedTree = processEmojiMentionMetadataComments(processedTree);
 
   const toRemove: { parent: Parent; index: number }[] = [];
