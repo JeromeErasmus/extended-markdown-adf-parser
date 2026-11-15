@@ -786,6 +786,19 @@ export class ASTBuilder {
   }
 
   /**
+   * Derive the markdown text an emoji node's attrs were encoded as
+   * (mirrors EmojiConverter.toMarkdown's precedence: actual emoji char, then shortName)
+   */
+  private getEmojiMarkdownText(attrs: Record<string, any>): string {
+    if (attrs.text) return attrs.text;
+    if (attrs.shortName) {
+      const shortName = String(attrs.shortName);
+      return shortName.startsWith(':') && shortName.endsWith(':') ? shortName : `:${shortName}:`;
+    }
+    return '';
+  }
+
+  /**
    * Check if content contains social elements that need special parsing
    */
   private hasSocialElements(content: string): boolean {
@@ -2074,8 +2087,22 @@ export class ASTBuilder {
               marks: metadata.marks
             };
           }
+
+          // Emoji metadata comment consumed by the dedicated pre-pass: the text
+          // node's value is still the full merged run (leading plain text plus
+          // the trailing emoji), so split off the emoji's own markdown text
+          // before emitting the real emoji node.
+          if (metadata && metadata.nodeType === 'emoji' && metadata.attrs) {
+            const value = typeof node.value === 'string' ? node.value : '';
+            const emojiText = this.getEmojiMarkdownText(metadata.attrs);
+            const leadingText = emojiText && value.endsWith(emojiText)
+              ? value.slice(0, value.length - emojiText.length)
+              : '';
+            const emojiNode: ADFNode = { type: 'emoji', attrs: metadata.attrs };
+            return leadingText ? [...this.processTextNodeForSocialElements(leadingText), emojiNode] : emojiNode;
+          }
         }
-        
+
         // Process text node for social elements and special syntax
         return this.processTextNodeForSocialElements(node.value);
       
@@ -2092,6 +2119,14 @@ export class ASTBuilder {
         return this.wrapWithMark(node.children, 'strike');
       
       case 'link':
+        // Mention metadata comment consumed by the dedicated pre-pass
+        if (node.data?.adfMetadata && Array.isArray(node.data.adfMetadata)) {
+          const metadata = node.data.adfMetadata[0];
+          if (metadata && metadata.nodeType === 'mention' && metadata.attrs) {
+            return { type: 'mention', attrs: metadata.attrs };
+          }
+        }
+
         // Check if this is an inline card (card: URL)
         if (node.url.startsWith('card:')) {
           return {

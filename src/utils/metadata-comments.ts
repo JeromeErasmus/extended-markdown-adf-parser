@@ -361,15 +361,71 @@ export function processSpanMetadataComments(tree: Root): Root {
 }
 
 /**
+ * Process emoji/mention metadata comments
+ *
+ * These comments trail a sibling that `findMetadataTarget`'s Strategy 1 would
+ * otherwise misattribute to the enclosing paragraph/heading (not the specific
+ * text/link node the comment is actually for) whenever that container has more
+ * than one child. This pre-pass pairs the comment directly with its preceding
+ * sibling instead, bypassing that heuristic entirely:
+ * - `text` node followed by `<!-- adf:emoji attrs='...' -->`
+ * - `link` node (url starting `adf://mention/`) followed by `<!-- adf:mention attrs='...' -->`
+ */
+export function processEmojiMentionMetadataComments(tree: Root): Root {
+  const processedTree = JSON.parse(JSON.stringify(tree)) as Root;
+
+  visit(processedTree, (node, index, parent) => {
+    if (!parent || typeof index !== 'number') return;
+
+    const siblings = (parent as Parent).children;
+    const sibling = siblings[index + 1] as any;
+    if (!sibling || sibling.type !== 'html' || typeof sibling.value !== 'string') return;
+
+    let match: RegExpMatchArray | null = null;
+    let nodeType: 'emoji' | 'mention' | null = null;
+
+    if (node.type === 'text') {
+      match = sibling.value.match(/^<!--\s*adf:emoji\s+attrs='(.+?)'\s*-->$/);
+      nodeType = 'emoji';
+    } else if (node.type === 'link' && typeof (node as any).url === 'string' && (node as any).url.startsWith('adf://mention/')) {
+      match = sibling.value.match(/^<!--\s*adf:mention\s+attrs='(.+?)'\s*-->$/);
+      nodeType = 'mention';
+    }
+
+    if (!match || !nodeType) return;
+
+    let attrs: Record<string, any>;
+    try {
+      attrs = JSON.parse(match[1]);
+    } catch (error) {
+      return;
+    }
+
+    const nodeData = (node as any).data || ((node as any).data = {});
+    if (!nodeData.adfMetadata) nodeData.adfMetadata = [];
+    (nodeData.adfMetadata as AdfMetadata[]).push({ nodeType, attrs, raw: sibling.value });
+
+    // Consume the comment so the generic attachment loop never sees it
+    siblings.splice(index + 1, 1);
+  });
+
+  return processedTree;
+}
+
+/**
  * Process metadata comments in an mdast tree
  * Associates comments with target nodes and removes the comment nodes
  */
 export function processMetadataComments(tree: Root): Root {
   let processedTree = JSON.parse(JSON.stringify(tree)) as Root;
-  
+
   // First process span-style comments
   processedTree = processSpanMetadataComments(processedTree);
-  
+
+  // Then process emoji/mention comments, which need direct sibling pairing
+  // rather than the generic (and here, wrong-location) findMetadataTarget heuristic
+  processedTree = processEmojiMentionMetadataComments(processedTree);
+
   const toRemove: { parent: Parent; index: number }[] = [];
 
   visit(processedTree, (node, index, parent) => {

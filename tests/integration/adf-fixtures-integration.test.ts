@@ -228,7 +228,8 @@ describe('ADF Fixtures Integration Tests', () => {
       'media-expand',
       'edge-cases',
       'schema-mark-regressions',
-      'table-cell-whitespace'
+      'table-cell-whitespace',
+      'modern-elements'
     ];
 
     fixtures.forEach(fixtureName => {
