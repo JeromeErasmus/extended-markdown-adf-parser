@@ -10,6 +10,8 @@ export interface ConversionContext {
   depth: number;
   parent?: ADFNode;
   options: ConversionOptions;
+  /** List marker (e.g. '- ' or '5. ') continuation lines must indent to match. */
+  marker?: string;
 }
 
 export interface ConversionOptions {

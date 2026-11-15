@@ -20,7 +20,7 @@ Warning panel with custom attributes and <u>~~empty~~</u> marks.
 
 5. List starting at 5
 
-  - Nested bullet item
+   - Nested bullet item
 6. 
 7. Item after empty
 
