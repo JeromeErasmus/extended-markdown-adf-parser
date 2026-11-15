@@ -155,11 +155,13 @@ git checkout main && git pull --ff-only
 ## Task 2: Bucket 2 — Metadata comment consumption (`emoji`, `mention`)
 
 **Files:**
-- Create: `tests/fixtures/adf/emoji-mention-roundtrip.adf`
-- Create: `tests/fixtures/markdown/emoji-mention-roundtrip.md`
+- Modify: `tests/fixtures/adf/modern-elements.adf` (already exists, already has `emoji` and `mention` nodes in multi-child paragraph/heading contexts — exactly the shape that triggers this bug — but has no `.md` counterpart and isn't wired into any test; adopting it instead of hand-crafting a new fixture, per explicit instruction to prefer existing files)
+- Create: `tests/fixtures/markdown/modern-elements.md` (this fixture's `.md` counterpart doesn't exist yet; generated from real converter output, not a new "extra" fixture)
 - Create: `tests/unit/parser/emoji-mention-roundtrip.test.ts`
 - Modify: `src/utils/metadata-comments.ts` (new function, called from `processMetadataComments`)
 - Modify: `src/parser/markdown-to-adf/ASTBuilder.ts` (`convertMdastInlineNode`'s `'text'`/`'link'` cases, around line 2063+, to consume the new pre-pass's output)
+
+**Confirmed `modern-elements.adf` is otherwise unused:** no test file references it today (verified via repo-wide grep), so adopting it carries no risk of colliding with existing assertions — it's a clean, pre-existing fixture that was simply never finished/wired in.
 
 **Interfaces:**
 - Consumes: `isAdfMetadataComment(value: string): boolean`, `parseAdfMetadataComment(value: string): AdfMetadata | null` (both already exported from `metadata-comments.ts`).
@@ -172,41 +174,23 @@ git checkout main && git pull --ff-only
 git checkout -b fix/issue-20-emoji-mention-metadata
 ```
 
-- [ ] **Step 2: Hand-craft the fixture ADF**
+- [ ] **Step 2: Confirm `modern-elements.adf`'s existing shape is sufficient**
 
-Write `tests/fixtures/adf/emoji-mention-roundtrip.adf`:
+Already verified: `content[0]` is a heading with a trailing `emoji` sibling after text; `content[5]` is a paragraph with two `mention` nodes interleaved with `text`/`status` siblings. No edits to the `.adf` needed — it already has the right shape (multi-child containers, not single-child) to exercise the bug. Skip straight to generating its missing `.md`.
 
-```json
-{
-  "version": 1,
-  "type": "doc",
-  "content": [
-    {
-      "type": "paragraph",
-      "content": [
-        { "type": "text", "text": "Reacting with " },
-        { "type": "emoji", "attrs": { "shortName": ":smile:", "text": "😄" } },
-        { "type": "text", "text": " cc " },
-        { "type": "mention", "attrs": { "id": "abc", "text": "@abc" } }
-      ]
-    }
-  ]
-}
-```
-
-- [ ] **Step 3: Generate the fixture markdown from current (unbroken) encode output**
+- [ ] **Step 3: Generate `tests/fixtures/markdown/modern-elements.md` from current (unbroken) encode output**
 
 ```bash
-cat > /tmp/gen-emoji-mention.mjs <<'EOF'
+cat > /tmp/gen-modern-elements.mjs <<'EOF'
 import { Parser } from '../../src/index.js';
 import { readFileSync, writeFileSync } from 'fs';
 const parser = new Parser();
-const adf = JSON.parse(readFileSync('tests/fixtures/adf/emoji-mention-roundtrip.adf', 'utf-8'));
-writeFileSync('tests/fixtures/markdown/emoji-mention-roundtrip.md', parser.adfToMarkdown(adf));
+const adf = JSON.parse(readFileSync('tests/fixtures/adf/modern-elements.adf', 'utf-8'));
+writeFileSync('tests/fixtures/markdown/modern-elements.md', parser.adfToMarkdown(adf));
 EOF
 ```
 
-Run this via a throwaway Jest test (project has no bare `node --loader` ESM-from-src runner), confirm the written `.md` contains both `<!-- adf:emoji ... -->` and `<!-- adf:mention ... -->`, then delete the throwaway test.
+Run this via a throwaway Jest test (project has no bare `node --loader` ESM-from-src runner), confirm the written `.md` contains `<!-- adf:emoji ... -->` and `<!-- adf:mention ... -->` comments, then delete the throwaway test.
 
 - [ ] **Step 4: Write the failing round-trip test**
 
@@ -222,14 +206,21 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixturesDir = join(__dirname, '../../fixtures');
 
 describe('Emoji/mention metadata round-trip (issue #20)', () => {
-  it('reproduces emoji and mention nodes from their encoded markdown', () => {
+  it('reproduces modern-elements.adf emoji/mention nodes from their encoded markdown', () => {
     const parser = new Parser();
-    const markdown = readFileSync(join(fixturesDir, 'markdown/emoji-mention-roundtrip.md'), 'utf-8');
-    const expectedAdf = JSON.parse(readFileSync(join(fixturesDir, 'adf/emoji-mention-roundtrip.adf'), 'utf-8'));
+    const markdown = readFileSync(join(fixturesDir, 'markdown/modern-elements.md'), 'utf-8');
+    const expectedAdf = JSON.parse(readFileSync(join(fixturesDir, 'adf/modern-elements.adf'), 'utf-8'));
 
     const result = parser.markdownToAdf(markdown);
 
-    expect(result.content).toEqual(expectedAdf.content);
+    const findAll = (node: any, type: string, found: any[] = []): any[] => {
+      if (node.type === type) found.push(node);
+      for (const child of node.content || []) findAll(child, type, found);
+      return found;
+    };
+
+    expect(findAll({ content: result.content }, 'emoji')).toEqual(findAll({ content: expectedAdf.content }, 'emoji'));
+    expect(findAll({ content: result.content }, 'mention')).toEqual(findAll({ content: expectedAdf.content }, 'mention'));
   });
 
   it('does not misfire on a real adf://mention/-shaped link with no comment', () => {
@@ -255,9 +246,9 @@ Add `export function processEmojiMentionMetadataComments(tree: Root): Root` to `
 Run: `node --experimental-vm-modules node_modules/.bin/jest tests/unit/parser/emoji-mention-roundtrip.test.ts`
 Expected: both PASS
 
-- [ ] **Step 8: Wire the new fixture into `adf-fixtures-integration.test.ts`**
+- [ ] **Step 8: Wire `modern-elements` into `adf-fixtures-integration.test.ts`**
 
-Add `'emoji-mention-roundtrip'` to the `fixtures` array in that file's `describe('All Fixtures Validation', ...)` block (same pattern as `schema-mark-regressions`/`table-cell-whitespace` added earlier this session), so the ADF→Markdown direction and `validateAdf()` are covered too.
+Add `'modern-elements'` to the `fixtures` array in that file's `describe('All Fixtures Validation', ...)` block (same pattern as `schema-mark-regressions`/`table-cell-whitespace` added earlier this session), so the ADF→Markdown direction and `validateAdf()` are covered too — this is the step that actually finishes wiring this previously-orphaned fixture into the suite.
 
 - [ ] **Step 9: Run the full test suite**
 
@@ -276,7 +267,7 @@ With the fix's uncommitted changes in the working tree, run the issue #20 `emoji
 - [ ] **Step 12: Commit**
 
 ```bash
-git add tests/fixtures/adf/emoji-mention-roundtrip.adf tests/fixtures/markdown/emoji-mention-roundtrip.md \
+git add tests/fixtures/adf/modern-elements.adf tests/fixtures/markdown/modern-elements.md \
   tests/unit/parser/emoji-mention-roundtrip.test.ts tests/integration/adf-fixtures-integration.test.ts \
   src/utils/metadata-comments.ts src/parser/markdown-to-adf/ASTBuilder.ts
 git commit -m "Fix: consume emoji/mention metadata comments on round-trip (#20)"
@@ -307,12 +298,14 @@ git checkout main && git pull --ff-only
 ## Task 3: Bucket 3 — Encode-side escaping (table-cell `|`, code-block fence length)
 
 **Files:**
-- Create: `tests/fixtures/adf/table-and-codeblock-escaping.adf`
-- Create: `tests/fixtures/markdown/table-and-codeblock-escaping.md`
+- Modify: `tests/fixtures/adf/edge-cases.adf` (extend the existing table with a new row containing a literal `|`; add a new standalone `codeBlock` node with nested-fence content — existing table/edge-cases already covers tables and a cell-nested codeBlock, so this reuses that fixture rather than creating a new one, per explicit instruction)
+- Modify: `tests/fixtures/markdown/edge-cases.md` (regenerated to match, same pattern as the checkbox-list extension done for PR #10)
 - Create: `tests/unit/parser/table-codeblock-escaping.test.ts`
 - Modify: `src/parser/adf-to-markdown/nodes/TableCellConverter.ts`
 - Modify: `src/parser/adf-to-markdown/nodes/TableHeaderConverter.ts`
 - Modify: `src/parser/adf-to-markdown/nodes/CodeBlockConverter.ts`
+
+**Confirmed safe to extend `edge-cases`:** surveyed every test file referencing this fixture (`whitespace-resilience.test.ts`, `round-trip-conversion.test.ts`, `markdown-to-adf-fixtures.test.ts`, `markdown-to-adf-validation.test.ts`, `adf-fixtures-integration.test.ts`) — none assert exact row counts, cell counts, or specific text that a new table row or new codeBlock node would disturb; all are generic (round-trip match against the committed `.md`, multi-call consistency, non-empty/no-throw). Appending a new row/node is safe.
 
 **Interfaces:**
 - Consumes: nothing new from other tasks (independent of Tasks 1-2).
@@ -325,46 +318,34 @@ git checkout main && git pull --ff-only
 git checkout -b fix/issue-20-table-codeblock-escaping
 ```
 
-- [ ] **Step 2: Hand-craft the fixture ADF with the issue's exact repro shapes**
+- [ ] **Step 2: Extend `tests/fixtures/adf/edge-cases.adf` with the issue's exact repro shapes**
 
-Write `tests/fixtures/adf/table-and-codeblock-escaping.adf`:
+Append a new `tableRow` to the existing table's `content` array (after its current last row) with a cell containing a literal `|`:
 
 ```json
 {
-  "version": 1,
-  "type": "doc",
+  "type": "tableRow",
   "content": [
-    {
-      "type": "table",
-      "content": [
-        {
-          "type": "tableRow",
-          "content": [
-            { "type": "tableHeader", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "a|b" }] }] },
-            { "type": "tableHeader", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "c" }] }] }
-          ]
-        },
-        {
-          "type": "tableRow",
-          "content": [
-            { "type": "tableCell", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "1" }] }] },
-            { "type": "tableCell", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "2" }] }] }
-          ]
-        }
-      ]
-    },
-    {
-      "type": "codeBlock",
-      "attrs": { "language": "js" },
-      "content": [{ "type": "text", "text": "a\n```\nb" }]
-    }
+    { "type": "tableCell", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "a|b" }] }] },
+    { "type": "tableCell", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "c" }] }] },
+    { "type": "tableCell", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "d" }] }] }
   ]
 }
 ```
 
-- [ ] **Step 3: Generate the fixture markdown from current (buggy) encode output**
+(three cells, matching the existing table's three-column width). Then append a new standalone `codeBlock` node to the document's top-level `content` array (e.g. right after the `table` node, before the `panel`):
 
-Via a throwaway Jest test, run `new Parser().adfToMarkdown(adf)` on the above and write the result to `tests/fixtures/markdown/table-and-codeblock-escaping.md` as-is (this captures today's corrupted output — the unescaped `a|b` splitting the header row, and the code block closing early on the nested fence). Delete the throwaway test after.
+```json
+{
+  "type": "codeBlock",
+  "attrs": { "language": "js" },
+  "content": [{ "type": "text", "text": "a\n```\nb" }]
+}
+```
+
+- [ ] **Step 3: Regenerate `tests/fixtures/markdown/edge-cases.md` from current (buggy) encode output**
+
+Via a throwaway Jest test, run `new Parser().adfToMarkdown(adf)` on the updated `edge-cases.adf` and overwrite `edge-cases.md` with the result as-is (this captures today's corrupted output alongside the existing, already-correct content — the unescaped `a|b` splitting the new table row, and the new code block closing early on its nested fence). Delete the throwaway test after.
 
 - [ ] **Step 4: Write the failing round-trip test**
 
@@ -380,9 +361,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const fixturesDir = join(__dirname, '../../fixtures');
 
 describe('Table pipe and code fence escaping (issue #20)', () => {
-  it('round-trips a table cell containing a literal pipe and a code block containing a nested fence', () => {
+  it('round-trips the edge-cases table cell containing a literal pipe and the new code block containing a nested fence', () => {
     const parser = new Parser();
-    const adf = JSON.parse(readFileSync(join(fixturesDir, 'adf/table-and-codeblock-escaping.adf'), 'utf-8'));
+    const adf = JSON.parse(readFileSync(join(fixturesDir, 'adf/edge-cases.adf'), 'utf-8'));
 
     const md = parser.adfToMarkdown(adf);
     const roundTripped = parser.markdownToAdf(md);
@@ -410,9 +391,9 @@ In `CodeBlockConverter.ts`, before building `result`, compute the longest run of
 Run: `node --experimental-vm-modules node_modules/.bin/jest tests/unit/parser/table-codeblock-escaping.test.ts`
 Expected: PASS
 
-- [ ] **Step 9: Regenerate the fixture markdown from the now-fixed encode output**
+- [ ] **Step 9: Regenerate `edge-cases.md` from the now-fixed encode output**
 
-Via a throwaway Jest test, regenerate `tests/fixtures/markdown/table-and-codeblock-escaping.md` from `adfToMarkdown()` on the same ADF — now it will contain the escaped pipe and the longer fence. Overwrite the file. Delete the throwaway test after. Re-run Step 8's test to confirm it still passes against the regenerated fixture.
+Via a throwaway Jest test, regenerate `tests/fixtures/markdown/edge-cases.md` from `adfToMarkdown()` on the full `edge-cases.adf` — now the new row/code block section will contain the escaped pipe and the longer fence, while all pre-existing content stays byte-identical (confirm this explicitly by diffing against the pre-fix version of the file). Overwrite the file. Delete the throwaway test after. Re-run Step 8's test to confirm it still passes against the regenerated fixture.
 
 - [ ] **Step 10: Add focused unit tests for the Review Focus cases**
 
@@ -420,9 +401,9 @@ In the same test file, add:
 - `'escapes multiple pipes across header and data cells'`: a table with `|` in more than one cell (both a header and a data cell) round-trips correctly for all of them.
 - `'uses more backticks than the longest run in mixed-length content'`: a codeBlock whose content contains both a 2-backtick run and a 4-backtick run produces a fence of at least 5 backticks and round-trips correctly.
 
-- [ ] **Step 11: Wire the new fixture into `adf-fixtures-integration.test.ts`**
+- [ ] **Step 11: Confirm the existing fixture wiring already covers this**
 
-Add `'table-and-codeblock-escaping'` to the `fixtures` array in `describe('All Fixtures Validation', ...)`, same pattern as Task 2's Step 8.
+No new wiring needed — `edge-cases` is already present in `adf-fixtures-integration.test.ts`'s `fixtures` array (`describe('All Fixtures Validation', ...)`) and in `markdown-to-adf-fixtures.test.ts`'s fixture lists, so the round-trip and `validateAdf()` checks for the extended fixture run automatically as part of those existing suites. Just confirm both still pass (covered by Step 12's full-suite run).
 
 - [ ] **Step 12: Run the full test suite**
 
@@ -441,8 +422,8 @@ With the fix's uncommitted changes in the working tree, run the issue #20 table/
 - [ ] **Step 15: Commit**
 
 ```bash
-git add tests/fixtures/adf/table-and-codeblock-escaping.adf tests/fixtures/markdown/table-and-codeblock-escaping.md \
-  tests/unit/parser/table-codeblock-escaping.test.ts tests/integration/adf-fixtures-integration.test.ts \
+git add tests/fixtures/adf/edge-cases.adf tests/fixtures/markdown/edge-cases.md \
+  tests/unit/parser/table-codeblock-escaping.test.ts \
   src/parser/adf-to-markdown/nodes/TableCellConverter.ts src/parser/adf-to-markdown/nodes/TableHeaderConverter.ts \
   src/parser/adf-to-markdown/nodes/CodeBlockConverter.ts
 git commit -m "Fix: escape table-cell pipes and code-block fence length on encode (#20)"
