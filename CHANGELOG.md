@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2026-11-15
+
+### Fixed
+- **Round-trip Fidelity**: `textColor`/`underline` marks (encoded as raw HTML `<span style="color:...">`/`<u>`) were silently dropped on `markdownToAdf(adfToMarkdown(doc))`, replaced with a raw `[HTML: ...]` placeholder (#20)
+- **Round-trip Fidelity**: `emoji`/`mention` metadata comments were misattributed to the enclosing paragraph instead of their specific sibling node, dropping the emoji/mention on round-trip (#20)
+- **Round-trip Fidelity**: Table cells containing a literal `|` and code blocks containing a nested fence (` ``` `) corrupted on round-trip; cell pipes are now escaped and fence length now exceeds the longest backtick run in the content (#20)
+- **Round-trip Fidelity**: An ordered-list item's nested content (nested lists, multi-paragraph content) was indented to match a bullet marker's width instead of the actual ordered marker's width, causing CommonMark to split the list in two on round-trip (#23)
+
 ## [2.5.1] - 2026-11-14
 
 ### Fixed
