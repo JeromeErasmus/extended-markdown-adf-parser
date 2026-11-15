@@ -60,4 +60,16 @@ describe('Mark-as-HTML round-trip', () => {
     expect(findText({ content: result.content }, '[HTML: <span style="color: #ff0000">]')).toBeTruthy();
     expect(findText({ content: result.content }, 'x')).toBeTruthy();
   });
+
+  it('decodes textColor/underline marks inside a table cell (not just paragraphs)', () => {
+    const parser = new Parser();
+    const markdown = readFileSync(join(fixturesDir, 'markdown/table-document.md'), 'utf-8');
+    const result = parser.markdownToAdf(markdown);
+
+    const complete = findText({ content: result.content }, 'Complete');
+    expect(sortMarks(complete?.marks)).toEqual(sortMarks([{ type: 'textColor', attrs: { color: '#36B37E' } }]));
+
+    const npmPublish = findText({ content: result.content }, 'npm publish');
+    expect(sortMarks(npmPublish?.marks)).toEqual(sortMarks([{ type: 'underline' }]));
+  });
 });
