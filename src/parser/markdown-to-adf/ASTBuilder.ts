@@ -1435,20 +1435,20 @@ export class ASTBuilder {
       case 'toml':
         // Skip frontmatter nodes - they're handled separately
         return null;
+      case 'adfPrewrapped':
+        // Already-converted content from pairHtmlMarkTags; pass through as-is.
+        return { __multipleNodes: node.nodes } as any;
       case 'text':
         // Check if this text node has metadata with marks (from span-style comments)
         if (node.data?.adfMetadata && Array.isArray(node.data.adfMetadata)) {
-          console.log('DEBUG: Found adfMetadata:', JSON.stringify(node.data.adfMetadata, null, 2));
           const metadata = node.data.adfMetadata[0];
           if (metadata && metadata.marks && Array.isArray(metadata.marks)) {
-            console.log('DEBUG: Found marks:', JSON.stringify(metadata.marks, null, 2));
             // Create text node with the marks from metadata
             adfNode = {
               type: 'text',
               text: node.value,
               marks: metadata.marks
             };
-            console.log('DEBUG: Created ADF node with marks:', JSON.stringify(adfNode, null, 2));
             break;
           }
         }
@@ -1871,9 +1871,12 @@ export class ASTBuilder {
   }
 
   private convertMdastTableCell(node: any, isHeader = false): ADFNode {
+    // Table cell content bypasses convertMdastInlineNodes, so run the same
+    // HTML-mark-pairing pre-pass here or textColor/underline inside a cell corrupts.
+    const pairedChildren = this.pairHtmlMarkTags(node.children);
     const adfNode: ADFNode = {
       type: isHeader ? 'tableHeader' : 'tableCell',
-      content: this.wrapCellContentInParagraph(this.convertMdastNodesToADF(node.children))
+      content: this.wrapCellContentInParagraph(this.convertMdastNodesToADF(pairedChildren))
     };
 
     // Apply metadata if available
