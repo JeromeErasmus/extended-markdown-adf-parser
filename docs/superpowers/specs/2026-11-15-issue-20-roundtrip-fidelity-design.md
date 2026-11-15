@@ -120,6 +120,20 @@ was never checked. This bucket's work is: make `markdownToAdf(comprehensive-mark
 reproduce those same marks — no `.adf` fixture changes needed, just a new
 test assertion against an existing, already-correct file.
 
+**Step 0 — replicate first (red):** add a new test (new file,
+`tests/unit/parser/mark-as-html-roundtrip.test.ts`) that:
+1. Reads `tests/fixtures/markdown/comprehensive-marks.md` and runs it
+   through `new Parser().markdownToAdf(...)`.
+2. Asserts the resulting text nodes carry `textColor`/`underline` marks
+   matching the corresponding nodes in the already-committed
+   `tests/fixtures/adf/comprehensive-marks.adf` (the same nodes listed
+   above: `"underlined text"`, `"colored text"`, `"bold underlined link"`,
+   `"hex color"`, `"RGB color"`, `"named color"`).
+3. Run it and confirm it fails against current code (producing the
+   `[HTML: ...]` placeholder instead of the mark) — this is the
+   replication of issue #20's `textColor`/`underline` cases, using the
+   library's own existing fixture content, before any fix lands.
+
 **Estimated size:** ~60-100 lines (one new private method in `ASTBuilder.ts`
 plus its call site(s) in both the token and mdast inline-conversion paths,
 matching the dual-path pattern established by the #6 and #10 fixes this
@@ -183,6 +197,25 @@ comment still produces a plain `link` mark) covers this; no existing
 fixture currently emits such a link without the comment, so no existing
 fixture changes expected.
 
+**Step 0 — replicate first (red):** add a new fixture pair,
+`tests/fixtures/adf/emoji-mention-roundtrip.adf` /
+`tests/fixtures/markdown/emoji-mention-roundtrip.md`, built the same way
+as this session's `schema-mark-regressions` fixture:
+1. Hand-craft the ADF: a paragraph with an `emoji` node and a `mention`
+   node (plus some surrounding plain text, since the bug specifically
+   requires other paragraph children for `findMetadataTarget`'s Strategy
+   1 to misfire — a single-child paragraph wouldn't exercise the bug).
+2. Generate the `.md` from the *current* `adfToMarkdown()` (the encode
+   direction isn't broken, so this is safe to generate now and won't
+   need to change once the fix lands).
+3. Add a new test (`tests/unit/parser/emoji-mention-roundtrip.test.ts`)
+   that runs `markdownToAdf()` on that generated `.md` and asserts the
+   result reproduces the original hand-crafted ADF's `emoji`/`mention`
+   nodes.
+4. Run it and confirm it fails against current code (emoji silently
+   dropped, mention downgraded to a plain `link` mark) — this is the
+   replication of issue #20's `emoji`/`mention` cases.
+
 **Estimated size:** ~70-110 lines (new pre-pass function in
 `metadata-comments.ts`, its call site in the preprocessing pipeline
 alongside `processSpanMetadataComments`, plus the two new emoji/mention
@@ -245,6 +278,28 @@ character-escaping (code content must stay literal).
 (no flanking-rule logic needed, unlike the deferred text-escaping case),
 and the fixture scan confirms zero currently-passing fixtures exercise
 either pattern today.
+
+**Step 0 — replicate first (red):** add a new fixture pair,
+`tests/fixtures/adf/table-and-codeblock-escaping.adf` /
+`tests/fixtures/markdown/table-and-codeblock-escaping.md`:
+1. Hand-craft the ADF: a table with a cell whose text contains a literal
+   `|` (e.g. `"a|b"`, matching the issue's repro), and a `codeBlock`
+   whose content contains a nested ` ``` ` fence (matching the issue's
+   repro).
+2. Generate the `.md` from the *current* (buggy) `adfToMarkdown()` output
+   — this is the actual corrupted markdown the bug produces (unescaped
+   pipe splitting the row, fence closing early), which is exactly what
+   needs to change once the fix lands, so commit it as-is for now.
+3. Add a new test (`tests/unit/nodes/TableCellConverter.escaping.test.ts`
+   and/or a shared `tests/unit/parser/table-codeblock-escaping.test.ts`)
+   that runs `markdownToAdf()` on the generated `.md` and asserts the
+   result does *not* reproduce the original table/codeBlock structure
+   (corrupted row count / split code block) — proving today's output is
+   broken.
+4. Run it and confirm it's red against current code before implementing
+   the fix. Once the fix lands, regenerate this fixture's `.md` from the
+   *fixed* `adfToMarkdown()` output (now correctly escaped) and flip the
+   test to assert correct round-trip instead.
 
 **Estimated size:** ~30-50 lines (table-cell `|` escaping + code-block
 fence-length logic, two narrow call sites) + ~30-40 lines of new unit
