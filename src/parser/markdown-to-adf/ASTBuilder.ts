@@ -2091,15 +2091,18 @@ export class ASTBuilder {
           // Emoji metadata comment consumed by the dedicated pre-pass: the text
           // node's value is still the full merged run (leading plain text plus
           // the trailing emoji), so split off the emoji's own markdown text
-          // before emitting the real emoji node.
+          // before emitting the real emoji node. If the attrs-derived text
+          // doesn't match a suffix of the value (mismatched/missing attrs,
+          // unicode normalization, etc.) don't guess at a split — fall through
+          // to preserving the full text as-is rather than risk dropping it.
           if (metadata && metadata.nodeType === 'emoji' && metadata.attrs) {
             const value = typeof node.value === 'string' ? node.value : '';
             const emojiText = this.getEmojiMarkdownText(metadata.attrs);
-            const leadingText = emojiText && value.endsWith(emojiText)
-              ? value.slice(0, value.length - emojiText.length)
-              : '';
-            const emojiNode: ADFNode = { type: 'emoji', attrs: metadata.attrs };
-            return leadingText ? [...this.processTextNodeForSocialElements(leadingText), emojiNode] : emojiNode;
+            if (emojiText && value.endsWith(emojiText)) {
+              const leadingText = value.slice(0, value.length - emojiText.length);
+              const emojiNode: ADFNode = { type: 'emoji', attrs: metadata.attrs };
+              return leadingText ? [...this.processTextNodeForSocialElements(leadingText), emojiNode] : emojiNode;
+            }
           }
         }
 

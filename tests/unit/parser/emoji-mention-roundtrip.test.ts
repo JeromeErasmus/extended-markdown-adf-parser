@@ -30,4 +30,18 @@ describe('Emoji/mention metadata round-trip (issue #20)', () => {
     const textNode = result.content[0].content[0];
     expect(textNode.marks).toEqual([{ type: 'link', attrs: { href: 'adf://mention/abc' } }]);
   });
+
+  it('preserves the full leading text when the emoji comment attrs do not match a suffix of the text (no silent data loss)', () => {
+    const parser = new Parser();
+    // attrs' text ("🙈") is not a suffix of the preceding text node's value ("Hello world"),
+    // simulating mismatched/stale attrs on the comment.
+    const markdown = 'Hello world<!-- adf:emoji attrs=\'{"shortName":":bogus:","text":"🙈"}\' -->';
+
+    const result = parser.markdownToAdf(markdown);
+    const paragraph = result.content[0];
+
+    expect(paragraph.content.some((n: any) => n.type === 'emoji')).toBe(false);
+    const textContent = paragraph.content.map((n: any) => n.text ?? '').join('');
+    expect(textContent).toBe('Hello world');
+  });
 });
