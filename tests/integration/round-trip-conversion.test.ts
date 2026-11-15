@@ -220,7 +220,7 @@ describe('Round-trip Conversion Tests', () => {
     });
   });
 
-  describe('Mark Fidelity Round-trip (issue #20)', () => {
+  describe('Mark Fidelity Round-trip', () => {
     const findText = (node: any, text: string): any => {
       if (node.type === 'text' && node.text === text) return node;
       for (const child of node.content || []) {

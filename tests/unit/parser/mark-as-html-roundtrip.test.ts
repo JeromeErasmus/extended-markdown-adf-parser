@@ -18,7 +18,7 @@ const findText = (node: any, text: string): any => {
 // Mark array order isn't semantically meaningful in ADF, so compare as sets.
 const sortMarks = (marks: any[] | undefined) => [...(marks || [])].sort((a, b) => a.type.localeCompare(b.type));
 
-describe('Mark-as-HTML round-trip (issue #20)', () => {
+describe('Mark-as-HTML round-trip', () => {
   it('reproduces comprehensive-marks.adf textColor/underline marks from its own .md', () => {
     const parser = new Parser();
     const markdown = readFileSync(join(fixturesDir, 'markdown/comprehensive-marks.md'), 'utf-8');
